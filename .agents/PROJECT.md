@@ -30,7 +30,7 @@ Healing Hands4U consists of:
 ## Milestones
 | # | Name | Scope | Dependencies | Status |
 |---|------|-------|-------------|--------|
-| M1 | Live Gemini & Atlas Integration, Stub Eradication & Verification | Features 1-6: Backend env race fix & AI container defaulting, model upgrades (gemini-3.6-flash, gemini-embedding-2 1536-dim), dynamic LLM answer generation in `chatbotService.ts`, eradication of all backend stubs, Android DTO alignment and fallback eradication in `ChatbotApi.kt`, `ChatbotViewModel.kt`, `ChatbotAnswerScreen.kt`, and programmatic Jest & Android tests. | none | IN_PROGRESS |
+| M1 | Live Gemini & Atlas Integration, Stub Eradication & Verification | Features 1-6: Backend env race fix & AI container defaulting, model upgrades (gemini-3.6-flash, gemini-embedding-2 1536-dim), dynamic LLM answer generation in `chatbotService.ts`, eradication of all backend stubs, Android DTO alignment and fallback eradication in `ChatbotApi.kt`, `ChatbotViewModel.kt`, `ChatbotAnswerScreen.kt`, and programmatic Jest & Android tests. | none | DONE |
 
 ---
 

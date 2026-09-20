@@ -45,7 +45,7 @@ class ChatbotViewModel @Inject constructor(
                 )
                 if (response.success) {
                     val ans = response.answer
-                    val displayText = ans?.answerText ?: response.message ?: "No remedy found"
+                    val displayText = ans?.answerText?.takeIf { it.isNotBlank() } ?: response.message?.takeIf { it.isNotBlank() } ?: "No remedy found"
                     _state.value = ChatbotUiState.Success(
                         answerText = displayText,
                         dosage = ans?.dosageInstructions,

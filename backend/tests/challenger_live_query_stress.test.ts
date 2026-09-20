@@ -301,7 +301,7 @@ describe('Empirical Challenger: Live Backend Query Resolution Pipeline Stress Te
       expect(reviewDoc).not.toBeNull();
       expect(reviewDoc!.status).toBe('pending');
       expect(reviewDoc!.originalQueryText).toContain('Sub-space warp plasma');
-      expect(reviewDoc!.sessionId.toString()).toBe(res.body.sessionId);
+      expect(reviewDoc!.sessionId!.toString()).toBe(res.body.sessionId);
 
       // Verify ChatbotSession recorded as low confidence
       const sessionDoc = await ChatbotSession.findById(res.body.sessionId);
