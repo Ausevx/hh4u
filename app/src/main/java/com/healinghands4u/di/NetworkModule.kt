@@ -17,7 +17,7 @@ object NetworkModule {
     @Singleton
     fun provideRetrofit(): Retrofit {
         return Retrofit.Builder()
-            .baseUrl("http://10.0.2.2:5001/") // Android emulator localhost alias
+            .baseUrl("https://hh4u-production.up.railway.app/") // Live Railway backend
             .addConverterFactory(GsonConverterFactory.create())
             .build()
     }
