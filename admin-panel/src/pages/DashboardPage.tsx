@@ -183,30 +183,30 @@ export const DashboardPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-2 sm:space-x-3">
             <a
               href="/healing-hands-4u.apk"
               download
-              className="inline-flex items-center px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 transition-colors shadow-sm cursor-pointer"
+              className="inline-flex items-center px-2 sm:px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 transition-colors shadow-sm cursor-pointer"
             >
-              <Download className="w-3.5 h-3.5 mr-1.5" />
-              Download APK
+              <Download className="w-3.5 h-3.5 sm:mr-1.5" />
+              <span className="hidden sm:inline">Download APK</span>
             </a>
 
             <button
               onClick={() => setIsBulkUploadOpen(true)}
-              className="inline-flex items-center px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-semibold text-[#0F2027] bg-white hover:bg-slate-50 transition-colors shadow-sm cursor-pointer"
+              className="inline-flex items-center px-2 sm:px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-semibold text-[#0F2027] bg-white hover:bg-slate-50 transition-colors shadow-sm cursor-pointer"
             >
-              <Upload className="w-3.5 h-3.5 mr-1.5 text-[#0E7C86]" />
-              Bulk Import (.xlsx)
+              <Upload className="w-3.5 h-3.5 text-[#0E7C86] sm:mr-1.5" />
+              <span className="hidden sm:inline">Bulk Import (.xlsx)</span>
             </button>
 
             <button
               onClick={handleOpenCreateModal}
-              className="inline-flex items-center px-3.5 py-1.5 rounded-lg text-xs font-semibold text-white bg-[#0E7C86] hover:bg-[#0A5C63] transition-colors shadow-sm cursor-pointer"
+              className="inline-flex items-center px-2 sm:px-3.5 py-1.5 rounded-lg text-xs font-semibold text-white bg-[#0E7C86] hover:bg-[#0A5C63] transition-colors shadow-sm cursor-pointer"
             >
-              <Plus className="w-3.5 h-3.5 mr-1.5" />
-              Add Knowledge Entry
+              <Plus className="w-3.5 h-3.5 sm:mr-1.5" />
+              <span className="hidden sm:inline">Add Knowledge Entry</span>
             </button>
 
             <div className="h-6 w-px bg-slate-200 mx-1" />

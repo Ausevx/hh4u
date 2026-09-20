@@ -9,20 +9,51 @@ import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
+import com.healinghands4u.data.remote.ChatbotApi
+import com.healinghands4u.data.remote.ChatbotQueryRequest
+
+sealed interface ChatbotUiState {
+    object Idle : ChatbotUiState
+    object Loading : ChatbotUiState
+    data class Success(
+        val answerText: String,
+        val dosage: String? = null,
+        val homeRemedy: String? = null,
+        val videoUrl: String? = null
+    ) : ChatbotUiState
+    data class Error(val message: String) : ChatbotUiState
+}
+
 @HiltViewModel
 class ChatbotViewModel @Inject constructor(
-    private val repository: KnowledgeRepository
+    private val chatbotApi: ChatbotApi
 ) : ViewModel() {
     
-    private val _state = MutableStateFlow<String>("Idle")
-    val state: StateFlow<String> = _state
+    private val _state = MutableStateFlow<ChatbotUiState>(ChatbotUiState.Idle)
+    val state: StateFlow<ChatbotUiState> = _state
 
     fun querySymptoms(symptoms: String) {
+        _state.value = ChatbotUiState.Loading
         viewModelScope.launch {
-            // Mock embedding and similarity call
-            val embedding = FloatArray(10) { 0.1f }
-            val results = repository.findSimilarDiseases(embedding)
-            _state.value = "Found ${results.size} matches"
+            try {
+                val response = chatbotApi.queryChatbot(
+                    ChatbotQueryRequest(
+                        queryText = symptoms,
+                        intent = "direct_answer"
+                    )
+                )
+                if (response.success) {
+                    _state.value = ChatbotUiState.Success(
+                        answerText = response.answer ?: response.remedyText ?: "Found remedy",
+                        homeRemedy = response.homeRemedyText,
+                        videoUrl = response.videoUrl
+                    )
+                } else {
+                    _state.value = ChatbotUiState.Error("Failed: ${response.message}")
+                }
+            } catch (e: Exception) {
+                _state.value = ChatbotUiState.Error("Error: ${e.message}")
+            }
         }
     }
 }

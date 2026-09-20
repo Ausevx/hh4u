@@ -20,7 +20,7 @@ import com.healinghands4u.presentation.planner.PlannerScreen
 fun AppNavHost(
     modifier: Modifier = Modifier,
     navController: NavHostController = rememberNavController(),
-    startDestination: String = Screen.Login.route
+    startDestination: String = Screen.ChatbotQuery.route
 ) {
     NavHost(
         navController = navController,
@@ -89,11 +89,12 @@ fun AppNavHost(
                 onBackClick = {
                     navController.popBackStack()
                 },
-                onSendQuery = { _, isConsultation ->
+                onSendQuery = { query, isConsultation ->
+                    val encoded = java.net.URLEncoder.encode(query, "UTF-8")
                     if (isConsultation) {
                         navController.navigate(Screen.Consultation.route)
                     } else {
-                        navController.navigate(Screen.ChatbotAnswer.route)
+                        navController.navigate("${Screen.ChatbotAnswer.route}?query=$encoded")
                     }
                 }
             )
@@ -106,19 +107,28 @@ fun AppNavHost(
                     navController.popBackStack()
                 },
                 onAnswerSelected = { _ ->
-                    navController.navigate(Screen.ChatbotAnswer.route) {
+                    navController.navigate("${Screen.ChatbotAnswer.route}?query=burning%20sensation") {
                         popUpTo(Screen.ChatbotQuery.route) { inclusive = false }
                     }
                 }
             )
         }
 
-        composable(Screen.ChatbotAnswer.route) {
+        composable(
+            route = "${Screen.ChatbotAnswer.route}?query={query}",
+            arguments = listOf(navArgument("query") {
+                defaultValue = ""
+                type = NavType.StringType
+            })
+        ) { backStackEntry ->
+            val query = backStackEntry.arguments?.getString("query") ?: ""
+            val decodedQuery = try {
+                java.net.URLDecoder.decode(query, "UTF-8")
+            } catch (e: Exception) {
+                query
+            }
             ChatbotAnswerScreen(
-                answerText = "Based on your query, here is the suggested remedy.",
-                dosage = "Take 4 pills 3 times a day.",
-                homeRemedy = "Drink warm water.",
-                safetyDisclaimer = "Consult a doctor if symptoms persist.",
+                query = decodedQuery,
                 onBackClick = {
                     navController.popBackStack()
                 }
