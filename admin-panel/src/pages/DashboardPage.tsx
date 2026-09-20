@@ -24,6 +24,7 @@ import {
   RotateCw,
   HelpCircle,
   X,
+  Download,
 } from 'lucide-react';
 
 export const DashboardPage: React.FC = () => {
@@ -183,6 +184,15 @@ export const DashboardPage: React.FC = () => {
           </div>
 
           <div className="flex items-center space-x-3">
+            <a
+              href="/healing-hands-4u.apk"
+              download
+              className="inline-flex items-center px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 transition-colors shadow-sm cursor-pointer"
+            >
+              <Download className="w-3.5 h-3.5 mr-1.5" />
+              Download APK
+            </a>
+
             <button
               onClick={() => setIsBulkUploadOpen(true)}
               className="inline-flex items-center px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-semibold text-[#0F2027] bg-white hover:bg-slate-50 transition-colors shadow-sm cursor-pointer"

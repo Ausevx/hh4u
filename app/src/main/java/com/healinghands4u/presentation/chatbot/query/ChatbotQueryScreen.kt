@@ -1,53 +1,34 @@
 package com.healinghands4u.presentation.chatbot.query
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Send
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.CheckboxDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextFieldDefaults
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.rounded.AutoAwesome
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.healinghands4u.presentation.common.DoctorContactFooter
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.healinghands4u.presentation.components.ChatHeader
 import com.healinghands4u.presentation.components.QuickReplyChip
 import com.healinghands4u.presentation.theme.AppIcons
 import com.healinghands4u.presentation.theme.SoraFontFamily
 import com.healinghands4u.presentation.theme.trustedTealColors
-
-import androidx.hilt.navigation.compose.hiltViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -67,7 +48,6 @@ fun ChatbotQueryScreen(
     var queryText by remember(decodedInitial) { mutableStateOf(decodedInitial) }
     var isConsultation by remember { mutableStateOf(false) }
 
-    val scrollState = rememberScrollState()
     val quickRepliesScroll = rememberScrollState()
     val tokens = MaterialTheme.trustedTealColors
 
@@ -76,175 +56,175 @@ fun ChatbotQueryScreen(
         containerColor = tokens.bg,
         topBar = {
             ChatHeader(
-                title = "Chat with Dr. AI",
-                subtitle = "Replies in seconds",
+                title = "Dr. AI Assistant",
+                subtitle = "Powered by Gemini",
                 onBackClick = onBackClick
             )
-        }
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .verticalScroll(scrollState)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.Top
-        ) {
-            Text(
-                text = "How can we help you today?",
-                style = MaterialTheme.typography.headlineMedium.copy(
-                    fontFamily = SoraFontFamily,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 24.sp
-                ),
-                color = tokens.ink
-            )
-
-            Spacer(modifier = Modifier.height(4.dp))
-
-            Text(
-                text = "Type your query or speak in any language to receive personalized natural guidance.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = tokens.inkDim
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Quick Reply Chips
-            Text(
-                text = "Quick Queries",
-                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                color = tokens.accent
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Row(
+        },
+        bottomBar = {
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .horizontalScroll(quickRepliesScroll),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    .background(tokens.bg)
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
             ) {
-                viewModel.quickReplies.forEach { item ->
-                    QuickReplyChip(
-                        label = item.label,
-                        icon = item.icon,
-                        onClick = { queryText = item.query }
-                    )
+                // Quick Replies just above the input
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(quickRepliesScroll)
+                        .padding(bottom = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    viewModel.quickReplies.forEach { item ->
+                        QuickReplyChip(
+                            label = item.label,
+                            icon = item.icon,
+                            onClick = { queryText = item.query }
+                        )
+                    }
                 }
-            }
 
-            Spacer(modifier = Modifier.height(20.dp))
-
-            // Text Input Field
-            OutlinedTextField(
-                value = queryText,
-                onValueChange = { queryText = it },
-                label = { Text("Type your query or speak") },
-                placeholder = { Text("Describe symptoms, pain, duration...", color = tokens.inkDim) },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(14.dp),
-                trailingIcon = {
+                // Sleek Input Bar
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(tokens.surface, RoundedCornerShape(24.dp))
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                ) {
                     IconButton(onClick = { /* Start Audio Capture */ }) {
                         Icon(
                             imageVector = AppIcons.Mic,
                             contentDescription = "Speak",
-                            tint = tokens.accent,
+                            tint = tokens.inkDim,
                             modifier = Modifier.size(24.dp)
                         )
                     }
-                },
-                colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = tokens.accent,
-                    unfocusedBorderColor = tokens.line,
-                    focusedTextColor = tokens.ink,
-                    unfocusedTextColor = tokens.ink
-                ),
-                minLines = 3,
-                maxLines = 5
-            )
 
-            Spacer(modifier = Modifier.height(14.dp))
-
-            // Consultation Mode Toggle
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Checkbox(
-                    checked = isConsultation,
-                    onCheckedChange = { isConsultation = it },
-                    colors = CheckboxDefaults.colors(
-                        checkedColor = tokens.accent,
-                        checkmarkColor = tokens.accentInk
+                    TextField(
+                        value = queryText,
+                        onValueChange = { queryText = it },
+                        placeholder = { 
+                            Text(
+                                "Describe symptoms or ask anything...", 
+                                color = tokens.inkDim,
+                                maxLines = 1
+                            ) 
+                        },
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(vertical = 4.dp),
+                        colors = TextFieldDefaults.colors(
+                            focusedContainerColor = Color.Transparent,
+                            unfocusedContainerColor = Color.Transparent,
+                            focusedIndicatorColor = Color.Transparent,
+                            unfocusedIndicatorColor = Color.Transparent,
+                            focusedTextColor = tokens.ink,
+                            unfocusedTextColor = tokens.ink
+                        ),
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+                        keyboardActions = KeyboardActions(
+                            onSend = {
+                                if (queryText.isNotBlank()) {
+                                    onSendQuery(queryText, isConsultation)
+                                }
+                            }
+                        ),
+                        maxLines = 4
                     )
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                    text = "I would like a guided online consultation",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = tokens.ink
-                )
-            }
 
-            Spacer(modifier = Modifier.height(20.dp))
-
-            // Primary Submit Action
-            Button(
-                onClick = { onSendQuery(queryText, isConsultation) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp),
-                enabled = queryText.isNotBlank(),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = tokens.accent,
-                    contentColor = tokens.accentInk,
-                    disabledContainerColor = tokens.line,
-                    disabledContentColor = tokens.inkDim
-                )
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Send,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = if (isConsultation) "Start Consultation" else "Get Answer Now",
-                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
-                )
-            }
-
-            // Dual Intent Wireframe Button (when not currently in consultation mode)
-            if (!isConsultation) {
-                Spacer(modifier = Modifier.height(10.dp))
-                OutlinedButton(
-                    onClick = { onSendQuery(queryText, true) },
+                    IconButton(
+                        onClick = { onSendQuery(queryText, isConsultation) },
+                        enabled = queryText.isNotBlank(),
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(if (queryText.isNotBlank()) tokens.accent else tokens.line)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Send,
+                            contentDescription = "Send",
+                            tint = if (queryText.isNotBlank()) tokens.accentInk else tokens.inkDim,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                }
+                
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(48.dp),
-                    enabled = queryText.isNotBlank(),
-                    shape = RoundedCornerShape(12.dp),
-                    border = BorderStroke(1.dp, if (queryText.isNotBlank()) tokens.accent else tokens.line),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = tokens.accent,
-                        disabledContentColor = tokens.inkDim
-                    )
+                        .padding(top = 8.dp, start = 8.dp)
                 ) {
+                    Checkbox(
+                        checked = isConsultation,
+                        onCheckedChange = { isConsultation = it },
+                        modifier = Modifier.size(24.dp),
+                        colors = CheckboxDefaults.colors(
+                            checkedColor = tokens.accent,
+                            checkmarkColor = tokens.accentInk
+                        )
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "I would like to Cooperate for online consultation",
-                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold)
+                        text = "Enable Guided Consultation",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = tokens.inkDim
                     )
                 }
             }
-
-            Spacer(modifier = Modifier.height(28.dp))
-
-            // Embedded Doctor Contact Footer
-            DoctorContactFooter()
-
-            Spacer(modifier = Modifier.height(16.dp))
+        }
+    ) { paddingValues ->
+        // Empty State / Welcome Screen
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(24.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(72.dp)
+                        .background(tokens.accent.copy(alpha = 0.1f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.AutoAwesome,
+                        contentDescription = "AI Assistant",
+                        tint = tokens.accent,
+                        modifier = Modifier.size(36.dp)
+                    )
+                }
+                
+                Spacer(modifier = Modifier.height(24.dp))
+                
+                Text(
+                    text = "Hello, I'm Dr. AI",
+                    style = MaterialTheme.typography.headlineMedium.copy(
+                        fontFamily = SoraFontFamily,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 28.sp
+                    ),
+                    color = tokens.ink,
+                    textAlign = TextAlign.Center
+                )
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                Text(
+                    text = "How can I help you today? You can type your symptoms or speak in any language.",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = tokens.inkDim,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                )
+            }
         }
     }
 }

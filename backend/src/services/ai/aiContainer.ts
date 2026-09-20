@@ -3,6 +3,8 @@ import { MockLLMService } from './mock/mockLLMService';
 import { MockEmbeddingService } from './mock/mockEmbeddingService';
 import { MockSTTService } from './mock/mockSTTService';
 import { MockTTSService } from './mock/mockTTSService';
+import { GeminiLLMService } from './gemini/geminiLLMService';
+import { GeminiEmbeddingService } from './gemini/geminiEmbeddingService';
 
 export interface AIServices {
   llm: ILLMService;
@@ -12,6 +14,19 @@ export interface AIServices {
 }
 
 export function createDefaultAIServices(): AIServices {
+  const apiKey = process.env.GEMINI_API_KEY;
+  
+  if (apiKey) {
+    console.log("Using Google Gemini AI services");
+    return {
+      llm: new GeminiLLMService(apiKey),
+      embedding: new GeminiEmbeddingService(apiKey),
+      stt: new MockSTTService(), // Keep mocks for STT/TTS until implemented
+      tts: new MockTTSService(),
+    };
+  }
+
+  console.log("Using Mock AI services (No GEMINI_API_KEY found)");
   return {
     llm: new MockLLMService(),
     embedding: new MockEmbeddingService(),

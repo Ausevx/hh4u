@@ -30,12 +30,12 @@ fun AppNavHost(
         composable(Screen.Login.route) {
             LoginScreen(
                 onLoginSuccess = {
-                    navController.navigate(Screen.Home.route) {
+                    navController.navigate(Screen.ChatbotQuery.route) {
                         popUpTo(Screen.Login.route) { inclusive = true }
                     }
                 },
                 onGuestClick = {
-                    navController.navigate(Screen.Home.route) {
+                    navController.navigate(Screen.ChatbotQuery.route) {
                         popUpTo(Screen.Login.route) { inclusive = true }
                     }
                 }
