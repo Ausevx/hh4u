@@ -26,7 +26,7 @@ class HomeScreenTest {
     fun homeScreen_rendersWelcomeBanner() {
         composeTestRule.setContent {
             HealingHandsTheme {
-                HomeScreen()
+                HomeScreen(viewModel = HomeViewModel())
             }
         }
 
@@ -38,7 +38,7 @@ class HomeScreenTest {
     fun homeScreen_rendersThreeMainNavigationCards() {
         composeTestRule.setContent {
             HealingHandsTheme {
-                HomeScreen()
+                HomeScreen(viewModel = HomeViewModel())
             }
         }
 
@@ -59,7 +59,7 @@ class HomeScreenTest {
     fun homeScreen_rendersEmbeddedDoctorContactFooter() {
         composeTestRule.setContent {
             HealingHandsTheme {
-                HomeScreen()
+                HomeScreen(viewModel = HomeViewModel())
             }
         }
 
@@ -76,6 +76,7 @@ class HomeScreenTest {
         composeTestRule.setContent {
             HealingHandsTheme {
                 HomeScreen(
+                    viewModel = HomeViewModel(),
                     onConsultationClick = { consultClicked = true },
                     onPlannerClick = { plannerClicked = true },
                     onDiseaseListClick = { diseaseListClicked = true }

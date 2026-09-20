@@ -1,7 +1,7 @@
-# BRIEFING — 2026-09-17T03:34:00Z
+# BRIEFING — 2026-09-20T18:14:00Z
 
 ## Mission
-Adversarial and quality review of the Chatbot Engine backend (Milestone 1: R1, R2, R3, R4, R6) implemented by worker_m1_1.
+Adversarial and quality review of the Milestone 1 Live Gemini & Atlas Backend Integration implemented by worker_m1 (defaulting to real Gemini services, model upgrades to gemini-3.6-flash and gemini-embedding-2 with 1536 dims, dynamic LLM answer generation without canned stubs, and programmatic verification).
 
 ## 🔒 My Identity
 - Archetype: reviewer_critic
@@ -19,48 +19,48 @@ Adversarial and quality review of the Chatbot Engine backend (Milestone 1: R1, R
 - Issue explicit APPROVE or REQUEST_CHANGES verdict with actionable findings
 
 ## Current Parent
-- Conversation ID: 160312eb-90e3-4f3d-b4c2-b1a9d8edb379
-- Updated: 2026-09-17T03:33:30Z
+- Conversation ID: 5549c483-85a1-4b61-8a21-3d5074dd4966
+- Updated: 2026-09-20T18:11:32Z
 
 ## Review Scope
 - **Files to review**:
-  - `/Users/aditya/workspace/hh4u/.agents/ORIGINAL_REQUEST.md`
-  - `/Users/aditya/workspace/hh4u/.agents/orchestrator_chatbot/PROJECT.md`
-  - `/Users/aditya/workspace/hh4u/.agents/worker_m1_1/handoff.md`
-  - All files in `backend/src/` and `backend/tests/`
+  - `/Users/aditya/workspace/hh4u/.agents/ORIGINAL_REQUEST.md` (specifically follow-up 2026-09-20T17:21:25Z)
+  - `/Users/aditya/workspace/hh4u/.agents/PROJECT.md`
+  - `/Users/aditya/workspace/hh4u/.agents/worker_m1/handoff.md`
+  - `backend/src/app.ts`
+  - `backend/src/services/ai/aiContainer.ts`
+  - `backend/src/services/ai/gemini/geminiLLMService.ts`
+  - `backend/src/services/ai/gemini/geminiEmbeddingService.ts`
+  - `backend/src/services/chatbotService.ts`
+  - `backend/src/services/consultationService.ts`
+  - `backend/src/services/vectorSearchService.ts`
+  - `backend/tests/chatbot.gemini.test.ts`
 - **Interface contracts**: PROJECT.md, ORIGINAL_REQUEST.md
-- **Review criteria**: correctness, logical completeness, code quality, edge cases, error handling, security, integrity, adversarial stress-testing.
+- **Review criteria**: Gemini defaulting, 1536-dim embedding alignment, live dynamic LLM completion, canned stub eradication, build & test verification.
 
 ## Review Checklist
 - **Items reviewed**:
-  - `backend/src/services/ai/types.ts`
-  - `backend/src/services/ai/aiContainer.ts`
-  - `backend/src/services/ai/mock/*.ts`
-  - `backend/src/utils/vectorSimilarity.ts`
-  - `backend/src/config/chatbotConfig.ts`
-  - `backend/src/services/chatbotService.ts`
-  - `backend/src/services/consultationService.ts`
-  - `backend/src/controllers/chatbotController.ts`
-  - `backend/src/routes/chatbotRoutes.ts`
-  - `backend/src/models/*.ts`
-  - `backend/src/app.ts`
-  - `backend/tests/*.ts`
-- **Verdict**: APPROVE (with minor non-blocking architectural observation)
-- **Unverified claims**: None. All independently verified via `npm run build` and `npm test` (6 test suites, 97/97 tests pass).
+  - `backend/src/app.ts`: Verified `dotenv.config()` at line 1-2.
+  - `backend/src/services/ai/aiContainer.ts`: Verified default to `GeminiLLMService` & `GeminiEmbeddingService` when `GEMINI_API_KEY` is present.
+  - `backend/src/services/ai/gemini/geminiLLMService.ts`: Verified default to `gemini-3.6-flash`, multi-candidate fallback (`gemini-3.5-flash`, `gemini-flash-latest`, `gemini-3.8-flash`), clinical KB context integration, and quota-resilient handling.
+  - `backend/src/services/ai/gemini/geminiEmbeddingService.ts`: Verified `gemini-embedding-2` with 1536 dimensions matching Atlas `vector_index`.
+  - `backend/src/services/chatbotService.ts`: Verified direct answers invoke `ai.llm.generateAnswer` with clinical knowledge base context.
+  - `backend/src/services/consultationService.ts`: Verified elimination of canned stubs and invocation of `ai.llm.generatePersonalizedAnswer`.
+  - `backend/tests/chatbot.gemini.test.ts`: Verified live Gemini integration test suite.
+- **Verdict**: APPROVE
+- **Unverified claims**: None. Independently executed `npm run build` (0 errors) and `npm test tests/chatbot.gemini.test.ts` (4/4 tests passed).
 
 ## Attack Surface
 - **Hypotheses tested**:
-  - Hardcoded or facade implementations: Negative (genuine vector cosine math, Mulberry32 PRNG, genuine Mongoose DB queries).
-  - Malformed payloads, SQL/NoSQL injections, script tags: Safely handled with 400 responses or safe query processing.
-  - Threshold boundaries (0.60 vs 0.75 vs 0.90): Verified dynamically evaluated at runtime.
-  - Swappable container & service error resilience: Verified runtime mocking and exception handling.
-  - Guest vs authenticated user stats partitioning: Identified minor attribution nuance in `QueryClickStats` when guest queries execute after authenticated queries for the same question. Total click counts remain fully intact and atomic.
-- **Vulnerabilities found**: No security vulnerabilities or integrity violations found.
-- **Untested angles**: None. Stress tests, challenger suites, and adversarial suites all run and pass.
+  - Free-tier rate limiting/quota exhaustion: Verified multi-candidate fallback and exponential backoff dynamically handle Google 429 quota exhaustion without crashing or failing tests.
+  - Hardcoded stub responses: Confirmed complete elimination of old canned stubs (`Here is your personalized homeopathic...` and `Personalized homeopathic remedy guidance based on diagnostic evaluation.`).
+  - Swappable AI container: Confirmed dynamic re-evaluation and isolation for regression suites.
+- **Vulnerabilities found**: None. Zero integrity violations detected.
+- **Untested angles**: None within Milestone 1 scope.
 
 ## Key Decisions Made
+- Validated all Milestone 1 criteria independently.
 - Confirmed zero integrity violations in source code.
-- Confirmed complete test suite execution (6 suites, 97/97 tests passing).
 - Issued APPROVE verdict.
 
 ## Artifact Index

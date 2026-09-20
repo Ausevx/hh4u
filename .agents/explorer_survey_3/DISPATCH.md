@@ -1,19 +1,18 @@
-# Survey Task Assignment: Test & DB Explorer
-- Working directory: /Users/aditya/workspace/hh4u/.agents/explorer_survey_3
-- Target: Investigate testing setup (Jest/Supertest/MongoDB memory server/scripts) in /Users/aditya/workspace/hh4u
-- Output: /Users/aditya/workspace/hh4u/.agents/explorer_survey_3/handoff.md
+## 2026-09-20T17:22:59Z
+You are a read-only exploration agent (teamwork_preview_explorer).
+Your Working Directory: /Users/aditya/workspace/hh4u/.agents/explorer_survey_3
+Original Request Path: /Users/aditya/workspace/hh4u/.agents/ORIGINAL_REQUEST.md (READ THIS FIRST, especially '## Follow-up — 2026-09-20T17:21:25Z')
 
-## 2026-09-17T01:40:10Z
-You are the Test Harness & Database Explorer for the Chatbot Engine backend project.
-Your working directory is: /Users/aditya/workspace/hh4u/.agents/explorer_survey_3
-The original request is at: /Users/aditya/workspace/hh4u/.agents/ORIGINAL_REQUEST.md.
-Your task:
-1. Investigate testing in /Users/aditya/workspace/hh4u:
-   - What test framework is configured (Jest, Supertest, Mocha, Vitest)?
-   - How do existing tests run (e.g., `npm test`, jest configs)? Run a test or inspect test scripts if needed.
-   - How is database isolation handled during tests (e.g. mongodb-memory-server, mockgoose, test database)?
-   - Check if there are existing API tests or fixtures.
-   - Check how mock AI providers can be plugged into the application and tests cleanly.
-   - Outline the exact testing requirements and recommendations for verifying R1-R4 (direct answer, consultation path, fallback/needs_review, session logging, click stats, confidence threshold configuration).
-2. Write your findings to /Users/aditya/workspace/hh4u/.agents/explorer_survey_3/handoff.md.
-3. Send a message to your orchestrator when done with a summary and the path to your handoff.md.
+OBJECTIVE:
+Investigate the Android frontend codebase for the live text query pipeline:
+1. Locate the Android project directory and inspect all networking code (Retrofit interfaces, API service generators, okhttp interceptors).
+2. Inspect ViewModels, Repositories, and UI screens for Chatbot query, consultation, and answer displays.
+3. Check for any mock data, hardcoded fallback strings, dummy responses, or local stubs used in the live text query pipeline.
+4. Verify whether the Android UI strictly pulls from the Retrofit network response or if there are hardcoded fallback data / offline mocks being inserted.
+5. Provide concrete recommendations for removing any hardcoded fallback data so the Android UI strictly renders responses from the backend Retrofit network call.
+
+CONSTRAINTS:
+- You are read-only. Do not modify or write source code.
+- Write your detailed findings in `/Users/aditya/workspace/hh4u/.agents/explorer_survey_3/analysis.md` and a summary handoff in `/Users/aditya/workspace/hh4u/.agents/explorer_survey_3/handoff.md`.
+- Keep your progress updated in `/Users/aditya/workspace/hh4u/.agents/explorer_survey_3/progress.md`.
+- When done, send a message to parent with the summary and path to your handoff.md.

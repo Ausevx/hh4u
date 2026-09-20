@@ -169,7 +169,7 @@ export class ConsultationService {
 
     const templateText =
       answerDoc?.answerText ||
-      'Personalized homeopathic remedy guidance based on diagnostic evaluation.';
+      `Clinical homeopathic evaluation and individualized guidance for query: "${session.originalQueryText}".`;
 
     // 7. Synthesize Personalized Final Answer via LLM
     const personalizedAnswer = await ai.llm.generatePersonalizedAnswer({

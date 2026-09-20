@@ -1,19 +1,21 @@
-## 2026-09-17T03:17:34Z
-You are Challenger 2 for the Chatbot Engine backend project.
-Your working directory is: /Users/aditya/workspace/hh4u/.agents/challenger_2
-Read:
-- /Users/aditya/workspace/hh4u/.agents/ORIGINAL_REQUEST.md
-- /Users/aditya/workspace/hh4u/.agents/orchestrator_chatbot/PROJECT.md
-- /Users/aditya/workspace/hh4u/.agents/worker_m1_1/handoff.md
-- Implementation in backend/src/ and backend/tests/
+## 2026-09-20T18:11:32Z
 
-Your task:
-1. Stress-test concurrency, state integrity, and invariants:
-   - Concurrency on QueryClickStats ($inc atomic increments across concurrent requests).
-   - Session state updates in ChatbotSession (preventing overwrite of earlier metadata).
-   - Swappable AI container behavior under test isolation.
-   - Multilingual and voice processing resilience.
-2. Execute tests in backend/ (`npm test`).
-3. Issue an explicit verdict: APPROVE or FAIL.
-4. Write your verification report to /Users/aditya/workspace/hh4u/.agents/challenger_2/handoff.md.
-5. Send a message to your orchestrator when done.
+<USER_REQUEST>
+You are an empirical challenger agent (teamwork_preview_challenger).
+Your Working Directory: /Users/aditya/workspace/hh4u/.agents/challenger_2
+Project Root: /Users/aditya/workspace/hh4u
+Scope Document: /Users/aditya/workspace/hh4u/.agents/PROJECT.md
+Original Request: /Users/aditya/workspace/hh4u/.agents/ORIGINAL_REQUEST.md (READ THIS FIRST, especially '## Follow-up — 2026-09-20T17:21:25Z')
+Worker Handoff: /Users/aditya/workspace/hh4u/.agents/worker_m1/handoff.md
+
+CHALLENGE OBJECTIVE:
+Empirically stress-test the Android client DTO parsing and response rendering:
+1. Verify that `ChatbotApi.kt` DTOs correctly handle live backend response payloads without `JsonSyntaxException`.
+2. Verify that `ChatbotViewModel.kt` and `ChatbotAnswerScreen.kt` do not fall back to hardcoded strings under null/partial payloads.
+3. Verify that Android unit tests compile and run successfully:
+   `./gradlew compileDebugUnitTestKotlin`
+   `./gradlew testDebugUnitTest --tests "*Chatbot*"`
+4. Report your verdict: APPROVE or REQUEST_CHANGES with empirical test logs.
+Write your full report in `/Users/aditya/workspace/hh4u/.agents/challenger_2/handoff.md` and send a message to parent when done.
+
+</USER_REQUEST>

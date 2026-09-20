@@ -4,7 +4,7 @@ import { cosineSimilarity, ScoredCandidate } from '../utils/vectorSimilarity';
 
 export const VECTOR_INDEX_NAME = 'vector_index';
 export const VECTOR_COLLECTION_NAME = 'level1questions';
-export const EMBEDDING_DIMENSION = 768; // Gemini text-embedding-004
+export const EMBEDDING_DIMENSION = 1536; // Gemini gemini-embedding-2 / Atlas vector_index
 
 export interface VectorIndexStatus {
   exists: boolean;

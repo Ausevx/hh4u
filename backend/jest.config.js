@@ -1,4 +1,6 @@
 /** @type {import('ts-jest').JestConfigWithTsJest} */
+process.env.USE_MOCK_AI = process.env.USE_MOCK_AI ?? 'true';
+
 module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',

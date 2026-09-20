@@ -181,6 +181,20 @@ export class ChatbotService {
         });
         await session.save();
 
+        let finalAnswerText: string;
+        if (answerDoc) {
+          finalAnswerText = await ai.llm.generateAnswer(translatedQueryText, {
+            canonicalQuestion: topCandidate.canonicalQuestionText,
+            baseAnswer: answerDoc.answerText,
+            remedy: (answerDoc as any).remedyText || answerDoc.answerText,
+            dosageInstructions: answerDoc.dosageInstructions,
+            homeRemedyText: answerDoc.homeRemedyText,
+            safetyDisclaimerText: answerDoc.safetyDisclaimerText,
+          });
+        } else {
+          finalAnswerText = await ai.llm.generateAnswer(translatedQueryText);
+        }
+
         return {
           success: true,
           sessionId: session._id.toString(),
@@ -191,19 +205,14 @@ export class ChatbotService {
             id: topCandidate.level1QuestionId.toString(),
             canonicalQuestionText: topCandidate.canonicalQuestionText,
           },
-          answer: answerDoc
-            ? {
-                id: answerDoc._id.toString(),
-                answerText: answerDoc.answerText,
-                dosageInstructions: answerDoc.dosageInstructions,
-                homeRemedyText: answerDoc.homeRemedyText,
-                safetyDisclaimerText: answerDoc.safetyDisclaimerText,
-                videoUrl: answerDoc.videoUrl,
-              }
-            : {
-                id: new mongoose.Types.ObjectId().toString(),
-                answerText: await ai.llm.generateAnswer(translatedQueryText),
-              },
+          answer: {
+            id: answerDoc?._id ? answerDoc._id.toString() : new mongoose.Types.ObjectId().toString(),
+            answerText: finalAnswerText,
+            dosageInstructions: answerDoc?.dosageInstructions,
+            homeRemedyText: answerDoc?.homeRemedyText,
+            safetyDisclaimerText: answerDoc?.safetyDisclaimerText,
+            videoUrl: answerDoc?.videoUrl,
+          },
           matchCandidates,
         };
       }

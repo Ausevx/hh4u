@@ -19,6 +19,7 @@ sealed interface ChatbotUiState {
         val answerText: String,
         val dosage: String? = null,
         val homeRemedy: String? = null,
+        val safetyDisclaimer: String? = null,
         val videoUrl: String? = null
     ) : ChatbotUiState
     data class Error(val message: String) : ChatbotUiState
@@ -43,13 +44,17 @@ class ChatbotViewModel @Inject constructor(
                     )
                 )
                 if (response.success) {
+                    val ans = response.answer
+                    val displayText = ans?.answerText ?: response.message ?: "No remedy found"
                     _state.value = ChatbotUiState.Success(
-                        answerText = response.answer ?: response.remedyText ?: "Found remedy",
-                        homeRemedy = response.homeRemedyText,
-                        videoUrl = response.videoUrl
+                        answerText = displayText,
+                        dosage = ans?.dosageInstructions,
+                        homeRemedy = ans?.homeRemedyText,
+                        safetyDisclaimer = ans?.safetyDisclaimerText,
+                        videoUrl = ans?.videoUrl
                     )
                 } else {
-                    _state.value = ChatbotUiState.Error("Failed: ${response.message}")
+                    _state.value = ChatbotUiState.Error("Failed: ${response.message ?: "Unknown error"}")
                 }
             } catch (e: Exception) {
                 _state.value = ChatbotUiState.Error("Error: ${e.message}")
