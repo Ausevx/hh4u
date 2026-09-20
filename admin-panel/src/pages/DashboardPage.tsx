@@ -25,10 +25,29 @@ import {
   HelpCircle,
   X,
   Download,
+  Moon,
+  Sun,
 } from 'lucide-react';
 
 export const DashboardPage: React.FC = () => {
   const { admin, logout } = useAuth();
+
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    return localStorage.getItem('theme') === 'dark' ||
+      (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  });
+
+  useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    }
+  }, [isDarkMode]);
+
+  const toggleDarkMode = () => setIsDarkMode(prev => !prev);
 
   // Stats State
   const [stats, setStats] = useState<KPIStats | null>(null);
@@ -164,22 +183,22 @@ export const DashboardPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#F7F9FB] flex flex-col text-[#0F2027]">
+    <div className="min-h-screen bg-white dark:bg-black flex flex-col text-black dark:text-white">
       {/* Top Navigation Bar */}
-      <header className="sticky top-0 z-30 bg-white border-b border-slate-200 shadow-sm">
+      <header className="sticky top-0 z-30 bg-white dark:bg-black border-b border-gray-200 dark:border-gray-800 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-xl bg-[#0E7C86] flex items-center justify-center text-white shadow-sm">
+            <div className="w-10 h-10 rounded-xl bg-black dark:bg-white flex items-center justify-center text-white dark:text-black shadow-sm">
               <Activity className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center space-x-2">
-                <h1 className="font-bold text-base text-[#0F2027] leading-tight">Healing Hands4U</h1>
-                <span className="bg-[#EAF5F6] text-[#0E7C86] text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full">
+                <h1 className="font-bold text-base text-black dark:text-white leading-tight">Healing Hands4U</h1>
+                <span className="bg-gray-100 dark:bg-gray-900 text-black dark:text-white text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full">
                   Admin Portal
                 </span>
               </div>
-              <p className="text-xs text-[#5C7480]">Knowledge Base Management & Vector Sync</p>
+              <p className="text-xs text-gray-600 dark:text-gray-400">Knowledge Base Management & Vector Sync</p>
             </div>
           </div>
 
@@ -187,7 +206,7 @@ export const DashboardPage: React.FC = () => {
             <a
               href="/healing-hands-4u.apk"
               download
-              className="inline-flex items-center px-2 sm:px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 transition-colors shadow-sm cursor-pointer"
+              className="inline-flex items-center px-2 sm:px-3 py-1.5 border border-gray-200 dark:border-gray-800 rounded-lg text-xs font-semibold text-black dark:text-white bg-gray-100 dark:bg-gray-900 hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors shadow-sm cursor-pointer"
             >
               <Download className="w-3.5 h-3.5 sm:mr-1.5" />
               <span className="hidden sm:inline">Download APK</span>
@@ -195,15 +214,15 @@ export const DashboardPage: React.FC = () => {
 
             <button
               onClick={() => setIsBulkUploadOpen(true)}
-              className="inline-flex items-center px-2 sm:px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-semibold text-[#0F2027] bg-white hover:bg-slate-50 transition-colors shadow-sm cursor-pointer"
+              className="inline-flex items-center px-2 sm:px-3 py-1.5 border border-gray-200 dark:border-gray-800 rounded-lg text-xs font-semibold text-black dark:text-white bg-white dark:bg-black hover:bg-gray-100 dark:hover:bg-gray-900 transition-colors shadow-sm cursor-pointer"
             >
-              <Upload className="w-3.5 h-3.5 text-[#0E7C86] sm:mr-1.5" />
+              <Upload className="w-3.5 h-3.5 text-black dark:text-white sm:mr-1.5" />
               <span className="hidden sm:inline">Bulk Import (.xlsx)</span>
             </button>
 
             <button
               onClick={handleOpenCreateModal}
-              className="inline-flex items-center px-2 sm:px-3.5 py-1.5 rounded-lg text-xs font-semibold text-white bg-[#0E7C86] hover:bg-[#0A5C63] transition-colors shadow-sm cursor-pointer"
+              className="inline-flex items-center px-2 sm:px-3.5 py-1.5 rounded-lg text-xs font-semibold text-white dark:text-black bg-black dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors shadow-sm cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5 sm:mr-1.5" />
               <span className="hidden sm:inline">Add Knowledge Entry</span>
@@ -213,13 +232,20 @@ export const DashboardPage: React.FC = () => {
 
             <div className="flex items-center space-x-2">
               <div className="text-right hidden sm:block">
-                <p className="text-xs font-semibold text-[#0F2027]">{admin?.email}</p>
-                <p className="text-[10px] text-[#5C7480] uppercase tracking-wider">{admin?.role || 'Admin'}</p>
+                <p className="text-xs font-semibold text-black dark:text-white">{admin?.email}</p>
+                <p className="text-[10px] text-gray-600 dark:text-gray-400 uppercase tracking-wider">{admin?.role || 'Admin'}</p>
               </div>
+              <button
+                onClick={toggleDarkMode}
+                title="Toggle Theme"
+                className="p-2 text-gray-400 dark:text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-900 transition-colors cursor-pointer"
+              >
+                {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+              </button>
               <button
                 onClick={logout}
                 title="Log Out"
-                className="p-2 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-colors cursor-pointer"
+                className="p-2 text-gray-400 dark:text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-900 transition-colors cursor-pointer"
               >
                 <LogOut className="w-4 h-4" />
               </button>
@@ -233,99 +259,99 @@ export const DashboardPage: React.FC = () => {
         {/* KPI Stat Cards */}
         <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Card 1: Total Questions */}
-          <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center space-x-4">
-            <div className="w-12 h-12 rounded-xl bg-[#EAF5F6] flex items-center justify-center text-[#0E7C86] flex-shrink-0">
+          <div className="bg-white dark:bg-black p-5 rounded-2xl border border-gray-200/80 dark:border-gray-800/80 shadow-sm flex items-center space-x-4">
+            <div className="w-12 h-12 rounded-xl bg-gray-100 dark:bg-gray-900 flex items-center justify-center text-black dark:text-white flex-shrink-0">
               <BookOpen className="w-6 h-6" />
             </div>
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-[#5C7480]">Level 1 Questions</p>
-              <p className="text-2xl font-bold text-[#0F2027]">
+              <p className="text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400">Level 1 Questions</p>
+              <p className="text-2xl font-bold text-black dark:text-white">
                 {statsLoading ? '...' : stats?.totalQuestions ?? 0}
               </p>
-              <p className="text-[11px] text-emerald-600 font-medium mt-0.5">
+              <p className="text-[11px] text-gray-800 dark:text-gray-200 font-medium mt-0.5">
                 {stats?.activeQuestions ?? 0} Active in App
               </p>
             </div>
           </div>
 
           {/* Card 2: Consultations */}
-          <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center space-x-4">
-            <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 flex-shrink-0">
+          <div className="bg-white dark:bg-black p-5 rounded-2xl border border-gray-200/80 dark:border-gray-800/80 shadow-sm flex items-center space-x-4">
+            <div className="w-12 h-12 rounded-xl bg-gray-100 dark:bg-gray-900 flex items-center justify-center text-black dark:text-white flex-shrink-0">
               <GitBranch className="w-6 h-6" />
             </div>
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-[#5C7480]">Diagnostic Trees</p>
-              <p className="text-2xl font-bold text-[#0F2027]">
+              <p className="text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400">Diagnostic Trees</p>
+              <p className="text-2xl font-bold text-black dark:text-white">
                 {statsLoading ? '...' : stats?.totalConsultations ?? 0}
               </p>
-              <p className="text-[11px] text-[#5C7480] font-medium mt-0.5">Yes/No Logic Branches</p>
+              <p className="text-[11px] text-gray-600 dark:text-gray-400 font-medium mt-0.5">Yes/No Logic Branches</p>
             </div>
           </div>
 
           {/* Card 3: Answers & Remedies */}
-          <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center space-x-4">
-            <div className="w-12 h-12 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600 flex-shrink-0">
+          <div className="bg-white dark:bg-black p-5 rounded-2xl border border-gray-200/80 dark:border-gray-800/80 shadow-sm flex items-center space-x-4">
+            <div className="w-12 h-12 rounded-xl bg-gray-100 dark:bg-gray-900 flex items-center justify-center text-gray-800 dark:text-gray-200 flex-shrink-0">
               <Pill className="w-6 h-6" />
             </div>
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-[#5C7480]">Remedies & Answers</p>
-              <p className="text-2xl font-bold text-[#0F2027]">
+              <p className="text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400">Remedies & Answers</p>
+              <p className="text-2xl font-bold text-black dark:text-white">
                 {statsLoading ? '...' : stats?.totalAnswers ?? 0}
               </p>
-              <p className="text-[11px] text-[#5C7480] font-medium mt-0.5">Homeopathic Guidance</p>
+              <p className="text-[11px] text-gray-600 dark:text-gray-400 font-medium mt-0.5">Homeopathic Guidance</p>
             </div>
           </div>
 
           {/* Card 4: Vector Index Status */}
-          <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center space-x-4">
-            <div className="w-12 h-12 rounded-xl bg-purple-50 flex items-center justify-center text-purple-600 flex-shrink-0">
+          <div className="bg-white dark:bg-black p-5 rounded-2xl border border-gray-200/80 dark:border-gray-800/80 shadow-sm flex items-center space-x-4">
+            <div className="w-12 h-12 rounded-xl bg-gray-100 dark:bg-gray-900 flex items-center justify-center text-black dark:text-white flex-shrink-0">
               <Database className="w-6 h-6" />
             </div>
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-[#5C7480]">Atlas Vector Search</p>
+              <p className="text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400">Atlas Vector Search</p>
               <div className="flex items-center space-x-2 mt-1">
-                <span className={`w-2.5 h-2.5 rounded-full ${stats?.vectorIndexActive ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
-                <p className="text-sm font-bold text-[#0F2027]">
+                <span className={`w-2.5 h-2.5 rounded-full ${stats?.vectorIndexActive ? 'bg-black dark:bg-white animate-pulse' : 'bg-gray-500 dark:bg-gray-400'}`} />
+                <p className="text-sm font-bold text-black dark:text-white">
                   {statsLoading ? '...' : stats?.vectorIndexActive ? 'Index Active' : 'Fallback Cosine'}
                 </p>
               </div>
-              <p className="text-[11px] text-[#5C7480] font-medium mt-0.5">1536-dim Cosine Embeddings</p>
+              <p className="text-[11px] text-gray-600 dark:text-gray-400 font-medium mt-0.5">1536-dim Cosine Embeddings</p>
             </div>
           </div>
         </section>
 
         {/* Knowledge Base Table Card */}
-        <section className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+        <section className="bg-white dark:bg-black rounded-2xl border border-gray-200/80 dark:border-gray-800/80 shadow-sm overflow-hidden">
           {/* Table Controls Header */}
-          <div className="p-4 sm:p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="p-4 sm:p-5 border-b border-gray-200 dark:border-gray-800 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search questions, tags, remedies, diagnostic criteria..."
-                className="w-full pl-10 pr-9 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-[#0F2027] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0E7C86] focus:border-transparent transition-colors"
+                className="w-full pl-10 pr-9 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl text-xs text-black dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-transparent transition-colors"
               />
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 cursor-pointer"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
               )}
             </div>
 
-            <div className="flex items-center space-x-3 text-xs text-[#5C7480]">
+            <div className="flex items-center space-x-3 text-xs text-gray-600 dark:text-gray-400">
               <span>
-                Showing <strong className="text-[#0F2027]">{items.length}</strong> of{' '}
-                <strong className="text-[#0F2027]">{totalItems}</strong> entries
+                Showing <strong className="text-black dark:text-white">{items.length}</strong> of{' '}
+                <strong className="text-black dark:text-white">{totalItems}</strong> entries
               </span>
               <button
                 onClick={handleRefreshAll}
                 title="Refresh Table"
-                className="p-2 text-slate-500 hover:text-[#0E7C86] hover:bg-[#EAF5F6] rounded-lg transition-colors cursor-pointer"
+                className="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-900 rounded-lg transition-colors cursor-pointer"
               >
                 <RotateCw className="w-4 h-4" />
               </button>
@@ -336,7 +362,7 @@ export const DashboardPage: React.FC = () => {
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-slate-50/75 border-b border-slate-200/80 text-[11px] font-semibold uppercase tracking-wider text-[#5C7480]">
+                <tr className="bg-gray-50/75 dark:bg-gray-900/75 border-b border-gray-200/80 dark:border-gray-800/80 text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400">
                   <th className="py-3 px-4 w-10"></th>
                   <th className="py-3 px-4">Canonical Health Question</th>
                   <th className="py-3 px-4">Tags</th>
@@ -349,19 +375,19 @@ export const DashboardPage: React.FC = () => {
               <tbody className="divide-y divide-slate-100 text-xs">
                 {tableLoading ? (
                   <tr>
-                    <td colSpan={7} className="py-12 text-center text-[#5C7480]">
+                    <td colSpan={7} className="py-12 text-center text-gray-600 dark:text-gray-400">
                       <div className="inline-flex flex-col items-center space-y-2">
-                        <RotateCw className="w-6 h-6 animate-spin text-[#0E7C86]" />
+                        <RotateCw className="w-6 h-6 animate-spin text-black dark:text-white" />
                         <span>Loading Knowledge Base records...</span>
                       </div>
                     </td>
                   </tr>
                 ) : items.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="py-12 text-center text-[#5C7480]">
+                    <td colSpan={7} className="py-12 text-center text-gray-600 dark:text-gray-400">
                       <div className="inline-flex flex-col items-center space-y-2">
-                        <HelpCircle className="w-8 h-8 text-slate-300" />
-                        <span className="font-medium text-sm text-[#0F2027]">No knowledge base items found</span>
+                        <HelpCircle className="w-8 h-8 text-gray-300 dark:text-gray-600" />
+                        <span className="font-medium text-sm text-black dark:text-white">No knowledge base items found</span>
                         <span className="text-xs">Try adjusting your search query or add a new entry.</span>
                       </div>
                     </td>
@@ -380,18 +406,18 @@ export const DashboardPage: React.FC = () => {
                       <React.Fragment key={item.id}>
                         <tr
                           onClick={() => toggleRowExpand(item.id)}
-                          className={`hover:bg-[#F7F9FB] cursor-pointer transition-colors ${
-                            isExpanded ? 'bg-[#F7F9FB]/80' : ''
+                          className={`hover:bg-gray-50 dark:hover:bg-gray-900 cursor-pointer transition-colors ${
+                            isExpanded ? 'bg-gray-50/80 dark:bg-black/80' : ''
                           }`}
                         >
-                          <td className="py-3.5 px-4 text-slate-400">
+                          <td className="py-3.5 px-4 text-gray-400 dark:text-gray-500">
                             {isExpanded ? (
-                              <ChevronDown className="w-4 h-4 text-[#0E7C86]" />
+                              <ChevronDown className="w-4 h-4 text-black dark:text-white" />
                             ) : (
                               <ChevronRight className="w-4 h-4" />
                             )}
                           </td>
-                          <td className="py-3.5 px-4 font-medium text-[#0F2027] max-w-md">
+                          <td className="py-3.5 px-4 font-medium text-black dark:text-white max-w-md">
                             <span className="line-clamp-2">{item.canonicalQuestionText}</span>
                           </td>
                           <td className="py-3.5 px-4">
@@ -400,37 +426,37 @@ export const DashboardPage: React.FC = () => {
                                 item.tags.map((t, idx) => (
                                   <span
                                     key={idx}
-                                    className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md text-[10px] font-medium"
+                                    className="bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 px-2 py-0.5 rounded-md text-[10px] font-medium"
                                   >
                                     {t}
                                   </span>
                                 ))
                               ) : (
-                                <span className="text-slate-400 text-[11px]">—</span>
+                                <span className="text-gray-400 dark:text-gray-500 text-[11px]">—</span>
                               )}
                             </div>
                           </td>
                           <td className="py-3.5 px-4 whitespace-nowrap">
-                            <span className="bg-[#EAF5F6] text-[#0E7C86] font-semibold px-2 py-0.5 rounded-full text-[10px]">
+                            <span className="bg-gray-100 dark:bg-gray-900 text-black dark:text-white font-semibold px-2 py-0.5 rounded-full text-[10px]">
                               {diagnosticList.length} Steps
                             </span>
                           </td>
                           <td className="py-3.5 px-4 whitespace-nowrap">
                             {hasVideo ? (
-                              <span className="inline-flex items-center text-rose-600 font-medium text-[11px]">
+                              <span className="inline-flex items-center text-black dark:text-white font-medium text-[11px]">
                                 <Video className="w-3.5 h-3.5 mr-1" />
                                 Video
                               </span>
                             ) : (
-                              <span className="text-slate-400 text-[11px]">—</span>
+                              <span className="text-gray-400 dark:text-gray-500 text-[11px]">—</span>
                             )}
                           </td>
                           <td className="py-3.5 px-4 whitespace-nowrap">
                             <span
                               className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold ${
                                 item.isActive
-                                  ? 'bg-emerald-50 text-emerald-700'
-                                  : 'bg-slate-100 text-slate-500'
+                                  ? 'bg-gray-100 dark:bg-gray-900 text-black dark:text-white'
+                                  : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'
                               }`}
                             >
                               {item.isActive ? 'Active' : 'Inactive'}
@@ -441,14 +467,14 @@ export const DashboardPage: React.FC = () => {
                               <button
                                 onClick={(e) => handleOpenEditModal(item, e)}
                                 title="Edit Question"
-                                className="p-1.5 text-slate-400 hover:text-[#0E7C86] hover:bg-[#EAF5F6] rounded-lg transition-colors cursor-pointer"
+                                className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-900 rounded-lg transition-colors cursor-pointer"
                               >
                                 <Edit3 className="w-3.5 h-3.5" />
                               </button>
                               <button
                                 onClick={(e) => handleOpenDeleteModal(item, e)}
                                 title="Delete Question"
-                                className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                                className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-900 rounded-lg transition-colors cursor-pointer"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
                               </button>
@@ -458,12 +484,12 @@ export const DashboardPage: React.FC = () => {
 
                         {/* Expandable Accordion Row Details */}
                         {isExpanded && (
-                          <tr className="bg-[#F7F9FB]/40">
-                            <td colSpan={7} className="p-4 sm:p-6 border-y border-slate-100">
-                              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 bg-white p-5 rounded-xl border border-slate-200/70 shadow-sm">
+                          <tr className="bg-gray-50/40 dark:bg-black/40">
+                            <td colSpan={7} className="p-4 sm:p-6 border-y border-gray-200 dark:border-gray-800">
+                              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 bg-white dark:bg-black p-5 rounded-xl border border-gray-200/70 dark:border-gray-800/70 shadow-sm">
                                 {/* Col 1: Diagnostic Questions Tree */}
                                 <div className="space-y-3">
-                                   <div className="flex items-center space-x-2 text-xs font-semibold uppercase tracking-wider text-[#0E7C86]">
+                                   <div className="flex items-center space-x-2 text-xs font-semibold uppercase tracking-wider text-black dark:text-white">
                                     <GitBranch className="w-4 h-4" />
                                     <span>Diagnostic Questions</span>
                                   </div>
@@ -472,16 +498,16 @@ export const DashboardPage: React.FC = () => {
                                       diagnosticList.map((dq, idx) => (
                                         <div
                                           key={idx}
-                                          className="p-3 bg-slate-50 rounded-lg border border-slate-200/60 text-xs"
+                                          className="p-3 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200/60 dark:border-gray-800/60 text-xs"
                                         >
-                                          <div className="text-[10px] font-semibold uppercase tracking-wider text-[#5C7480] mb-0.5">
+                                          <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 mb-0.5">
                                             Step {idx + 1}
                                           </div>
-                                          <p className="text-[#0F2027] font-medium">{dq}</p>
+                                          <p className="text-black dark:text-white font-medium">{dq}</p>
                                         </div>
                                       ))
                                     ) : (
-                                      <p className="text-xs text-slate-400 italic">No diagnostic questions defined.</p>
+                                      <p className="text-xs text-gray-400 dark:text-gray-500 italic">No diagnostic questions defined.</p>
                                     )}
                                   </div>
                                 </div>
@@ -489,19 +515,19 @@ export const DashboardPage: React.FC = () => {
                                 {/* Col 2: Reason & Home Remedy Guidance */}
                                 <div className="space-y-4">
                                   <div>
-                                    <div className="text-xs font-semibold uppercase tracking-wider text-[#5C7480] mb-1">
+                                    <div className="text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 mb-1">
                                       Pathology & Clinical Reason
                                     </div>
-                                    <p className="text-xs text-[#0F2027] bg-slate-50 p-3 rounded-lg border border-slate-200/60 leading-relaxed">
+                                    <p className="text-xs text-black dark:text-white bg-gray-50 dark:bg-gray-900 p-3 rounded-lg border border-gray-200/60 dark:border-gray-800/60 leading-relaxed">
                                       {item.answer?.reasonText || 'No clinical reason recorded.'}
                                     </p>
                                   </div>
 
                                   <div>
-                                    <div className="text-xs font-semibold uppercase tracking-wider text-[#0E7C86] mb-1">
+                                    <div className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white mb-1">
                                       Home Remedy & Prescription
                                     </div>
-                                    <p className="text-xs text-[#0F2027] bg-emerald-50/50 p-3 rounded-lg border border-emerald-100 leading-relaxed font-medium">
+                                    <p className="text-xs text-black dark:text-white bg-gray-50 dark:bg-gray-900 p-3 rounded-lg border border-gray-200 dark:border-gray-800 leading-relaxed font-medium">
                                       {item.homeRemedyText ||
                                         item.answer?.remedyText ||
                                         item.answer?.homeRemedyText ||
@@ -512,13 +538,13 @@ export const DashboardPage: React.FC = () => {
 
                                 {/* Col 3: Media / YouTube Video Preview */}
                                 <div className="space-y-3">
-                                  <div className="flex items-center space-x-2 text-xs font-semibold uppercase tracking-wider text-rose-600">
+                                  <div className="flex items-center space-x-2 text-xs font-semibold uppercase tracking-wider text-black dark:text-white">
                                     <Video className="w-4 h-4" />
                                     <span>Video Demonstration</span>
                                   </div>
                                   {youtubeId ? (
                                     <div className="space-y-2">
-                                      <div className="aspect-video w-full rounded-lg overflow-hidden border border-slate-200 bg-black">
+                                      <div className="aspect-video w-full rounded-lg overflow-hidden border border-gray-200 dark:border-gray-800 bg-black">
                                         <iframe
                                           src={`https://www.youtube.com/embed/${youtubeId}`}
                                           title="Remedy Video Demonstration"
@@ -531,7 +557,7 @@ export const DashboardPage: React.FC = () => {
                                         href={item.videoUrl || item.answer?.videoUrl}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="inline-flex items-center text-xs font-medium text-[#0E7C86] hover:underline"
+                                        className="inline-flex items-center text-xs font-medium text-black dark:text-white hover:underline"
                                       >
                                         <ExternalLink className="w-3 h-3 mr-1" />
                                         Watch on YouTube
@@ -542,13 +568,13 @@ export const DashboardPage: React.FC = () => {
                                       href={item.videoUrl || item.answer?.videoUrl}
                                       target="_blank"
                                       rel="noopener noreferrer"
-                                      className="inline-flex items-center text-xs font-medium text-[#0E7C86] hover:underline"
+                                      className="inline-flex items-center text-xs font-medium text-black dark:text-white hover:underline"
                                     >
                                       <ExternalLink className="w-3.5 h-3.5 mr-1" />
                                       Open External Video Link
                                     </a>
                                   ) : (
-                                    <div className="p-6 bg-slate-50 rounded-lg border border-slate-200/60 text-center text-slate-400 text-xs">
+                                    <div className="p-6 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200/60 dark:border-gray-800/60 text-center text-gray-400 dark:text-gray-500 text-xs">
                                       No video attached to this knowledge base item.
                                     </div>
                                   )}
@@ -566,23 +592,23 @@ export const DashboardPage: React.FC = () => {
           </div>
 
           {/* Table Pagination Bar */}
-          <div className="p-4 border-t border-slate-100 flex items-center justify-between text-xs text-[#5C7480]">
+          <div className="p-4 border-t border-gray-200 dark:border-gray-800 flex items-center justify-between text-xs text-gray-600 dark:text-gray-400">
             <div>
-              Page <strong className="text-[#0F2027]">{currentPage}</strong> of{' '}
-              <strong className="text-[#0F2027]">{totalPages}</strong>
+              Page <strong className="text-black dark:text-white">{currentPage}</strong> of{' '}
+              <strong className="text-black dark:text-white">{totalPages}</strong>
             </div>
             <div className="flex items-center space-x-2">
               <button
                 disabled={currentPage <= 1 || tableLoading}
                 onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                className="px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-semibold text-[#0F2027] bg-white hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                className="px-3 py-1.5 border border-gray-200 dark:border-gray-800 rounded-lg text-xs font-semibold text-black dark:text-white bg-white dark:bg-black hover:bg-gray-100 dark:hover:bg-gray-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
               >
                 Previous
               </button>
               <button
                 disabled={currentPage >= totalPages || tableLoading}
                 onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                className="px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-semibold text-[#0F2027] bg-white hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                className="px-3 py-1.5 border border-gray-200 dark:border-gray-800 rounded-lg text-xs font-semibold text-black dark:text-white bg-white dark:bg-black hover:bg-gray-100 dark:hover:bg-gray-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
               >
                 Next
               </button>

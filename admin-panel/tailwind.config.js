@@ -7,46 +7,7 @@ export default {
   darkMode: 'class',
   theme: {
     extend: {
-      colors: {
-        // Trusted Teal Medical Theme Design Tokens
-        trusted: {
-          accent: {
-            DEFAULT: '#0E7C86',
-            hover: '#0B646D',
-            light: '#EAF5F6',
-            dark: '#2DD4C8',
-            darkInk: '#04211E',
-          },
-          bg: {
-            DEFAULT: '#FFFFFF',
-            dark: '#0A1418',
-          },
-          surface: {
-            DEFAULT: '#F7F9FB',
-            tint: '#EAF5F6',
-            dark: '#101E22',
-            darkTint: 'rgba(45, 212, 200, 0.10)',
-          },
-          ink: {
-            DEFAULT: '#0F2027',
-            dim: '#5C7480',
-            dark: '#E7F1F3',
-            darkDim: '#7E97A0',
-          },
-          line: {
-            DEFAULT: 'rgba(15, 32, 39, 0.08)',
-            dark: 'rgba(231, 241, 243, 0.10)',
-          },
-          warn: {
-            bg: '#FFF0EC',
-            ink: '#A14A2A',
-            darkBg: 'rgba(230, 126, 34, 0.14)',
-            darkInk: '#F0B074',
-          },
-          whatsapp: '#25D366',
-          phone: '#1976D2',
-        },
-      },
+      colors: {},
       fontFamily: {
         sans: ['"IBM Plex Sans"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
         heading: ['"Sora"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
