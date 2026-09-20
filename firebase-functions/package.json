@@ -1,0 +1,17 @@
+{
+  "name": "firebase-functions",
+  "version": "1.0.0",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "serve": "npm run build && firebase emulators:start --only functions"
+  },
+  "dependencies": {
+    "firebase-admin": "^11.10.1",
+    "firebase-functions": "^4.4.1",
+    "@google/genai": "^0.1.2"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  }
+}
