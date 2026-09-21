@@ -3,7 +3,7 @@ import { ILLMService, PersonalizeAnswerParams, TranslateResult } from '../types'
 
 export class GeminiLLMService implements ILLMService {
   private ai: GoogleGenAI;
-  private model = process.env.GEMINI_LLM_MODEL || 'gemini-3.6-flash';
+  private model = process.env.GEMINI_LLM_MODEL || 'gemini-1.5-flash';
 
   constructor(apiKey: string) {
     this.ai = new GoogleGenAI({ apiKey });
@@ -19,9 +19,9 @@ export class GeminiLLMService implements ILLMService {
 
     const candidateModels = [
       this.model,
-      'gemini-3.5-flash',
+      'gemini-1.5-flash',
       'gemini-flash-latest',
-      'gemini-3.8-flash',
+      'gemini-1.5-flash-8b',
     ].filter((m, i, arr) => m && arr.indexOf(m) === i);
 
     let lastError: any;
