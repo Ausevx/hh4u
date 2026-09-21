@@ -45,7 +45,10 @@ export class GeminiLLMService implements ILLMService {
           return response;
         } catch (err: any) {
           lastError = err;
-          console.warn(`[GeminiLLMService] Model ${model} failed (${err.message}). Trying next candidate...`);
+          console.warn(`[GeminiLLMService] Model ${model} failed (${err.message}).`);
+          if (err.status === 403 || err.status === 429 || err.status === 400 || (err.message && err.message.includes('429'))) {
+             throw err; // Do not retry on permanent or quota errors
+          }
         }
       }
       if (attempt < 2) {
@@ -112,7 +115,7 @@ Only output valid JSON.`;
       let advice = `Homeopathic Assessment for "${prompt}":\n`;
       if (context?.remedy) advice += `Recommended Remedy: ${context.remedy}\n`;
       if (context?.dosageInstructions) advice += `Dosage: ${context.dosageInstructions}\n`;
-      if (context?.homeRemedyText) advice += `Home Care: ${context.homeRemedyText}\n`;
+      if (context?.homeRemedyText && context.homeRemedyText !== context.remedy) advice += `Home Care: ${context.homeRemedyText}\n`;
       if (context?.safetyDisclaimerText) advice += `Safety Instructions: ${context.safetyDisclaimerText}\n`;
       return advice;
     }
@@ -162,7 +165,7 @@ Ensure the response begins with "Personalized Homeopathic Plan" and is compassio
       return response.text || `Personalized Homeopathic Plan for "${params.originalQuery}": ${params.templateText}`;
     } catch (err: any) {
       console.warn(`[GeminiLLMService] Gemini API quota/rate-limit reached (${err?.message}). Generating dynamic personalized fallback.`);
-      return `Personalized Homeopathic Plan for "${params.originalQuery}": ${params.templateText}`;
+      return `Personalized Homeopathic Plan for "${params.originalQuery}":\n${params.templateText}`;
     }
   }
 }
