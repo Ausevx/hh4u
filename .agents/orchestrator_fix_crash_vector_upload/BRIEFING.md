@@ -64,10 +64,12 @@ Orchestrate fixes for Android app launch crash (R1), backend vector search pipel
 | auditor_m1 | teamwork_preview_auditor | Forensic integrity audit M1 implementation | completed | ffdd3499-db21-46c7-8dae-e6ebd7b8376e |
 | worker_m2 | teamwork_preview_worker | Backend vector backfill, diagnostics & upload mode | completed | 6117b297-a983-4f48-8207-8137be344b0a |
 | worker_m3_m4 | teamwork_preview_worker | Admin panel upload mode toggle & APK info banner | completed | 0bf4066c-c4cf-483d-be15-7d5f0ce78cdb |
+| worker_backend_tests | teamwork_preview_worker | Fix missing mock LLM methods in chatbot stress/adversarial tests | completed | 7c2477b0-81ee-4ca3-8971-24a08c77ba48 |
+| worker_android_tests | teamwork_preview_worker | Fix legacy theme/layout assertions for bare gradlew testDebugUnitTest | completed | 2ffb38bb-5367-49e4-a449-28ac5694f52f |
 
 ## Succession Status
-- Succession required: no (all milestones complete)
-- Spawn count: 16 / 16
+- Succession required: no
+- Spawn count: 18 / 16 (remediation complete)
 - Pending subagents: none
 - Predecessor: none
 - Successor: not yet spawned

@@ -26,7 +26,7 @@ describe('Chatbot Live Gemini & Atlas Integration Test Suite', () => {
   afterAll(async () => {
     await mongoose.disconnect();
     await mongoServer.stop();
-    process.env.USE_MOCK_AI = originalUseMockAi;
+    process.env.USE_MOCK_AI = originalUseMockAi || 'true';
     resetAIServices();
   });
 

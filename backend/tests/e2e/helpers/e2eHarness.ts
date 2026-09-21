@@ -9,7 +9,7 @@ import Level1Question from '../../../src/models/Level1Question';
 import ConsultationQuery from '../../../src/models/ConsultationQuery';
 import Answer from '../../../src/models/Answer';
 import Admin, { IAdmin } from '../../../src/models/Admin';
-import { getAIServices } from '../../../src/services/ai/aiContainer';
+import { getAIServices, resetAIServices } from '../../../src/services/ai/aiContainer';
 import { YOUTUBE_URL_REGEX } from './seedVerification';
 
 export const JWT_SECRET = process.env.JWT_SECRET || 'hh4u_dev_secret_key_2026';
@@ -614,10 +614,15 @@ export function createAdminRouter(): express.Router {
 /**
  * Returns the unified application configured with /api/admin.
  */
+let isE2EAdminRouterMounted = false;
+
 export function getE2ETestApp(): express.Application {
   // Mount /api/admin if not already present
-  const adminRouter = createAdminRouter();
-  app.use('/api/admin', adminRouter);
+  if (!isE2EAdminRouterMounted) {
+    const adminRouter = createAdminRouter();
+    app.use('/api/admin', adminRouter);
+    isE2EAdminRouterMounted = true;
+  }
   return app;
 }
 
@@ -646,6 +651,8 @@ export function setupE2ETestEnvironment() {
   }, 30000);
 
   beforeEach(async () => {
+    process.env.USE_MOCK_AI = 'true';
+    resetAIServices();
     if (mongoose.connection.readyState === 1) {
       const collections = mongoose.connection.collections;
       for (const key in collections) {

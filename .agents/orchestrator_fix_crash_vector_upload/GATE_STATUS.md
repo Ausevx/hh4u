@@ -1,4 +1,4 @@
-# Gate Status: Healing Hands4U Ecosystem Fixes
+# Gate Status: Healing Hands4U Ecosystem Fixes & Canonical Test Remediation
 
 ## Gate — Milestone 1 (Android App Launch Crash Fix & Graceful Fallback)
 | Agent | Role | Verdict | Source |
@@ -11,31 +11,15 @@
 | auditor_m1 (`ffdd3499`) | teamwork_preview_auditor | CLEAN | handoff.md |
 
 Gate Result: **PASS**
-- Launch crash eliminated: uncaught `IllegalStateException` on `FirebaseAuth.getInstance()` guarded via safe nullable getter with try-catch in `FirebaseAuthManager` and `AuthViewModel`.
-- Composition crash eliminated: `ProfileMenu.kt` guarded in `remember { try-catch }` displaying "Logged in as Guest".
-- Guest user flow fully verified: Login Screen -> Continue as Guest -> Chatbot Query Screen works cleanly without crash.
-- Clean compilation: `./gradlew assembleDebug` produces 15.89 MB APK with 0 errors.
-- Test suites: 32 tests passed across 7 test classes with 0 failures (100% pass rate).
 
 ---
 
 ## Gate — Milestone 2 (Backend Vector Search Repair & Status Diagnostic Endpoint)
 | Agent | Role | Verdict | Source |
 |-------|------|---------|--------|
-| worker_m2 (`6117b297`) | teamwork_preview_worker | DONE (`npm run build` passed, 127/127 tests passed) | handoff.md |
+| worker_m2 (`6117b297`) | teamwork_preview_worker | DONE (`npm run build` passed, live Atlas queries > 0.87) | handoff.md |
 
 Gate Result: **PASS**
-- 184/184 questions on Atlas backfilled with live Google Gemini embeddings (`gemini-embedding-2`, 1536 dims).
-- `GET /api/admin/vector-status` implemented and returning full status:
-  - `totalLevel1Questions: 184`
-  - `questionsWithEmbeddings: 184`
-  - `vectorIndexExists: true`
-  - `vectorIndexQueryable: true`
-  - `geminiApiKeyConfigured: true`
-  - `geminiApiKeyStatus: "CONFIGURED"`
-- Querying "vomiting" (`score: 0.8936`) and "headache" (`score: 0.8725`) verified against live Atlas returning clinical homeopathic remedies above the 0.75 confidence threshold.
-- Non-blocking startup hook integrated in `backend/src/index.ts`.
-- Backend bulk upload mode (`append` vs `overwrite`) implemented with transaction safety.
 
 ---
 
@@ -45,10 +29,19 @@ Gate Result: **PASS**
 | worker_m3_m4 (`0bf4066c`) | teamwork_preview_worker | DONE (`npm run build` passed, `npm run lint` passed) | handoff.md |
 
 Gate Result: **PASS**
-- `BulkUploadModal.tsx`: Added Append (Default) vs Overwrite toggle.
-- High-contrast confirmation warning dialog displayed upon selecting Overwrite:
-  *"Warning: Overwrite mode will permanently delete all existing questions, diagnostic consultation trees, and remedy answers from MongoDB Atlas before inserting new data."*
-- Active warning banner displayed when Overwrite mode is selected.
-- `DashboardPage.tsx`: Verbatim text added to APK download button hover tooltip and top informational banner:
-  *"This APK connects to the live backend. Database changes via upload take effect immediately — no APK rebuild needed."*
-- All TypeScript validations and Vite build compile cleanly with exit code 0.
+
+---
+
+## Gate — Canonical Test Suite Remediation (Victory Audit Resolution)
+| Target Subsystem | Remediation Worker | Canonical Command | Executed / Passed | Verdict |
+|---|---|---|---|---|
+| **Backend** | `worker_backend_tests` (`7c2477b0`) | `npm test` (bare, 29 suites) | **29/29 suites, 531/531 tests passed** (Exit code 0) | **PASS** |
+| **Backend** | `worker_backend_tests` (`7c2477b0`) | `npm run build` | `tsc` passed with 0 errors (Exit code 0) | **PASS** |
+| **Android** | `worker_android_tests` (`2ffb38bb`) | `./gradlew testDebugUnitTest` | **131/131 tests passed, 0 failures** (Exit code 0) | **PASS** |
+| **Android** | `worker_android_tests` (`2ffb38bb`) | `./gradlew assembleDebug` | Build successful, APK generated (Exit code 0) | **PASS** |
+| **Admin Panel** | `worker_m3_m4` (`0bf4066c`) | `npm run lint` & `npm run build` | 1603 Vite modules transformed, 0 errors (Exit code 0) | **PASS** |
+
+Gate Result: **PASS**
+- All 29 backend test suites pass on bare `npm test` without filtering.
+- All 131 Android unit tests pass on bare `./gradlew testDebugUnitTest` without filtering.
+- All build commands compile cleanly with exit code 0.

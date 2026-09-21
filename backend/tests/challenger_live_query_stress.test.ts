@@ -31,7 +31,7 @@ describe('Empirical Challenger: Live Backend Query Resolution Pipeline Stress Te
   afterAll(async () => {
     await mongoose.disconnect();
     await mongoServer.stop();
-    process.env.USE_MOCK_AI = originalUseMockAi;
+    process.env.USE_MOCK_AI = originalUseMockAi || 'true';
     if (originalGeminiKey) {
       process.env.GEMINI_API_KEY = originalGeminiKey;
     }

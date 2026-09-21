@@ -350,6 +350,7 @@ describe('Chatbot Engine Backend — Empirical Stress & Invariant Harness (Chall
         translateToEnglish: jest.fn().mockResolvedValue({ translatedText: 'isolated translation', detectedLanguage: 'de' }),
         generateAnswer: jest.fn().mockResolvedValue('isolated answer'),
         generatePersonalizedAnswer: jest.fn().mockResolvedValue('isolated personalized'),
+        generateConversationalResponse: jest.fn().mockResolvedValue('isolated conversational'),
       };
 
       setAIServices({ llm: customLLM });

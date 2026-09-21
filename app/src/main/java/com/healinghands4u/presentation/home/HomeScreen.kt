@@ -45,6 +45,9 @@ import com.healinghands4u.presentation.theme.SoraFontFamily
 import com.healinghands4u.presentation.theme.trustedTealColors
 
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.runtime.remember
+import com.healinghands4u.presentation.common.isHiltAvailable
 
 @Composable
 fun HomeScreen(
@@ -52,8 +55,16 @@ fun HomeScreen(
     onConsultationClick: () -> Unit = {},
     onPlannerClick: () -> Unit = {},
     onDiseaseListClick: () -> Unit = {},
-    viewModel: HomeViewModel = hiltViewModel()
+    viewModel: HomeViewModel? = null
 ) {
+    val context = LocalContext.current
+    val hasHilt = remember(context) { isHiltAvailable(context) }
+    val actualViewModel: HomeViewModel = viewModel ?: if (hasHilt) {
+        hiltViewModel<HomeViewModel>()
+    } else {
+        remember { HomeViewModel() }
+    }
+
     val scrollState = rememberScrollState()
     val tokens = MaterialTheme.trustedTealColors
 
@@ -145,8 +156,8 @@ fun HomeScreen(
 
             // Holistic Daily Tip
             TipCard(
-                category = viewModel.tipCategory,
-                body = viewModel.tipBody,
+                category = actualViewModel.tipCategory,
+                body = actualViewModel.tipBody,
                 onReadMoreClick = onPlannerClick
             )
 

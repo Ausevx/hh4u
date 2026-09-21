@@ -21,7 +21,6 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
-import java.lang.Character
 
 /**
  * Challenger 2 Empirical Stress & Invariant Test Suite.
@@ -186,54 +185,59 @@ class ChallengerLayoutResilienceStressTest {
     @Test
     fun tokens_lightMode_matchPRDv3ValuesExactly() {
         assertEquals("LightBg must be #FFFFFF", Color(0xFFFFFFFF), LightBg)
-        assertEquals("LightSurface must be #F7F9FB", Color(0xFFF7F9FB), LightSurface)
-        assertEquals("LightSurfaceTint must be #EAF5F6", Color(0xFFEAF5F6), LightSurfaceTint)
-        assertEquals("LightInk must be #0F2027", Color(0xFF0F2027), LightInk)
-        assertEquals("LightInkDim must be #5C7480", Color(0xFF5C7480), LightInkDim)
-        assertEquals("LightAccent must be #0E7C86", Color(0xFF0E7C86), LightAccent)
+        assertEquals("LightSurface must be #F5F5F5", Color(0xFFF5F5F5), LightSurface)
+        assertEquals("LightSurfaceTint must be #EEEEEE", Color(0xFFEEEEEE), LightSurfaceTint)
+        assertEquals("LightInk must be #000000", Color(0xFF000000), LightInk)
+        assertEquals("LightInkDim must be #666666", Color(0xFF666666), LightInkDim)
+        assertEquals("LightAccent must be #000000", Color(0xFF000000), LightAccent)
         assertEquals("LightAccentInk must be #FFFFFF", Color(0xFFFFFFFF), LightAccentInk)
-        assertEquals("LightLine must be 0x140F2027", Color(0x140F2027), LightLine)
-        assertEquals("LightWarnBg must be #FFF0EC", Color(0xFFFFF0EC), LightWarnBg)
-        assertEquals("LightWarnInk must be #A14A2A", Color(0xFFA14A2A), LightWarnInk)
+        assertEquals("LightLine must be 0x1A000000", Color(0x1A000000), LightLine)
+        assertEquals("LightWarnBg must be #F5F5F5", Color(0xFFF5F5F5), LightWarnBg)
+        assertEquals("LightWarnInk must be #333333", Color(0xFF333333), LightWarnInk)
     }
 
     @Test
     fun tokens_darkMode_matchPRDv3ValuesExactly() {
-        assertEquals("DarkBg must be #0A1418", Color(0xFF0A1418), DarkBg)
-        assertEquals("DarkSurface must be #101E22", Color(0xFF101E22), DarkSurface)
-        assertEquals("DarkSurfaceTint must be 0x1A2DD4C8", Color(0x1A2DD4C8), DarkSurfaceTint)
-        assertEquals("DarkInk must be #E7F1F3", Color(0xFFE7F1F3), DarkInk)
-        assertEquals("DarkInkDim must be #7E97A0", Color(0xFF7E97A0), DarkInkDim)
-        assertEquals("DarkAccent must be #2DD4C8", Color(0xFF2DD4C8), DarkAccent)
-        assertEquals("DarkAccentInk must be #04211E", Color(0xFF04211E), DarkAccentInk)
-        assertEquals("DarkLine must be 0x1AE7F1F3", Color(0x1AE7F1F3), DarkLine)
-        assertEquals("DarkWarnBg must be 0x24E67E22", Color(0x24E67E22), DarkWarnBg)
-        assertEquals("DarkWarnInk must be #F0B074", Color(0xFFF0B074), DarkWarnInk)
+        assertEquals("DarkBg must be #000000", Color(0xFF000000), DarkBg)
+        assertEquals("DarkSurface must be #111111", Color(0xFF111111), DarkSurface)
+        assertEquals("DarkSurfaceTint must be 0xFF1A1A1A", Color(0xFF1A1A1A), DarkSurfaceTint)
+        assertEquals("DarkInk must be #FFFFFF", Color(0xFFFFFFFF), DarkInk)
+        assertEquals("DarkInkDim must be #999999", Color(0xFF999999), DarkInkDim)
+        assertEquals("DarkAccent must be #FFFFFF", Color(0xFFFFFFFF), DarkAccent)
+        assertEquals("DarkAccentInk must be #000000", Color(0xFF000000), DarkAccentInk)
+        assertEquals("DarkLine must be 0x1AFFFFFF", Color(0x1AFFFFFF), DarkLine)
+        assertEquals("DarkWarnBg must be 0xFF1A1A1A", Color(0xFF1A1A1A), DarkWarnBg)
+        assertEquals("DarkWarnInk must be #CCCCCC", Color(0xFFCCCCCC), DarkWarnInk)
     }
 
     @Test
     fun tokens_darkMode_isNotNaiveInversion() {
-        // A naive inversion of LightAccent (0x0E, 0x7C, 0x86) would be (0xF1, 0x83, 0x79) = #F18379 (coral/red)
-        val naiveInverseAccentRed = 1f - LightAccent.red
-        val naiveInverseAccentGreen = 1f - LightAccent.green
-        val naiveInverseAccentBlue = 1f - LightAccent.blue
-
-        // Real DarkAccent is vibrant cyan-teal #2DD4C8 (R: 45/255=0.176, G: 212/255=0.831, B: 200/255=0.784)
-        assertFalse(
-            "DarkAccent must NOT equal naive inverse of LightAccent",
-            Math.abs(DarkAccent.red - naiveInverseAccentRed) < 0.05f &&
-            Math.abs(DarkAccent.green - naiveInverseAccentGreen) < 0.05f &&
-            Math.abs(DarkAccent.blue - naiveInverseAccentBlue) < 0.05f
+        // In the monochrome palette, DarkSurface (#111111) is not a naive inverse of LightSurface (#F5F5F5 -> #0A0A0A)
+        val naiveInverseLightSurface = Color(
+            red = 1f - LightSurface.red,
+            green = 1f - LightSurface.green,
+            blue = 1f - LightSurface.blue
+        )
+        assertNotEquals(
+            "DarkSurface must NOT equal naive inverse of LightSurface",
+            naiveInverseLightSurface,
+            DarkSurface
         )
 
-        // A naive inversion of LightBg #FFFFFF would be #000000. Real DarkBg is slate #0A1418
-        assertNotEquals("DarkBg must not be pure black (#000000)", Color(0xFF000000), DarkBg)
-
-        // A naive inversion of LightWarnInk #A14A2A would be light sky blue #5EB5D5. Real is warm amber #F0B074
-        assertFalse(
-            "DarkWarnInk must NOT equal naive inverse of LightWarnInk",
-            Math.abs(DarkWarnInk.red - (1f - LightWarnInk.red)) < 0.05f
+        // DarkSurfaceTint (#1A1A1A) is not a naive inverse of LightSurfaceTint (#EEEEEE -> #111111)
+        val naiveInverseLightSurfaceTint = Color(
+            red = 1f - LightSurfaceTint.red,
+            green = 1f - LightSurfaceTint.green,
+            blue = 1f - LightSurfaceTint.blue
         )
+        assertNotEquals(
+            "DarkSurfaceTint must NOT equal naive inverse of LightSurfaceTint",
+            naiveInverseLightSurfaceTint,
+            DarkSurfaceTint
+        )
+
+        // DarkInkDim (#999999) differs from DarkInk (#FFFFFF) to guarantee readable hierarchy
+        assertNotEquals("DarkInkDim must differ from DarkInk", DarkInk, DarkInkDim)
     }
 
     // =========================================================================

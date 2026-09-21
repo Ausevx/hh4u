@@ -55,6 +55,29 @@ import com.healinghands4u.presentation.theme.trustedTealColors
 
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.runtime.collectAsState
+import androidx.compose.ui.platform.LocalContext
+import com.healinghands4u.presentation.common.isHiltAvailable
+
+private object DefaultDiseaseDao : com.healinghands4u.data.local.DiseaseDao {
+    override suspend fun getAllDiseases(): List<DiseaseEntity> =
+        com.healinghands4u.data.mock.MockHomeopathyData.diseases.map {
+            DiseaseEntity(
+                id = it.id,
+                name = it.name,
+                category = it.category,
+                primaryRemedies = it.primaryRemedies,
+                symptoms = it.symptoms,
+                dosageGuideline = it.dosageGuideline,
+                videoUrl = it.videoUrl
+            )
+        }
+    override suspend fun insertAll(diseases: List<DiseaseEntity>) {}
+    override suspend fun clearAll() {}
+}
+
+private object DefaultSyncService : com.healinghands4u.data.remote.SyncService {
+    override suspend fun getDiseases(): List<DiseaseEntity> = emptyList()
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -62,13 +85,22 @@ fun DiseaseListScreen(
     modifier: Modifier = Modifier,
     onBackClick: () -> Unit = {},
     onDiseaseClick: (String) -> Unit = {},
-    viewModel: DiseaseListViewModel = hiltViewModel()
+    viewModel: DiseaseListViewModel? = null
 ) {
+    val context = LocalContext.current
+    val hasHilt = remember(context) { isHiltAvailable(context) }
+    val actualViewModel: DiseaseListViewModel = viewModel ?: if (hasHilt) {
+        hiltViewModel<DiseaseListViewModel>()
+    } else {
+        val defaultRepo = remember { com.healinghands4u.data.repository.KnowledgeRepository(DefaultDiseaseDao, DefaultSyncService) }
+        remember { DiseaseListViewModel(defaultRepo) }
+    }
+
     var searchQuery by remember { mutableStateOf("") }
     var selectedCategory by remember { mutableStateOf("All") }
 
-    val diseases by viewModel.diseases.collectAsState()
-    val categories = viewModel.categories
+    val diseases by actualViewModel.diseases.collectAsState()
+    val categories = actualViewModel.categories
 
     val filteredDiseases = remember(searchQuery, selectedCategory, diseases) {
         diseases.filter { item ->

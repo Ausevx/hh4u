@@ -3,6 +3,7 @@ package com.healinghands4u.presentation.navigation
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
@@ -50,11 +51,9 @@ class AppNavHostTransitionTest {
         // Click guest button
         composeTestRule.onNodeWithTag(TestTags.LOGIN_GUEST_BUTTON).performScrollTo().performClick()
 
-        // Home dashboard should now be displayed
-        composeTestRule.onNodeWithTag(TestTags.HOME_WELCOME_BANNER).assertIsDisplayed()
-        composeTestRule.onNodeWithTag(TestTags.HOME_CARD_AI_CONSULT).assertIsDisplayed()
-        composeTestRule.onNodeWithTag(TestTags.HOME_CARD_PLANNER).performScrollTo().assertIsDisplayed()
-        composeTestRule.onNodeWithTag(TestTags.HOME_CARD_DISEASE_LIST).performScrollTo().assertIsDisplayed()
+        // Chatbot Query screen should now be displayed
+        composeTestRule.onNodeWithText("Chat with Dr. AI").assertIsDisplayed()
+        composeTestRule.onNodeWithText("How can we help you today?").assertIsDisplayed()
 
         // Login screen should have been popped from backstack
         composeTestRule.onNodeWithTag(TestTags.LOGIN_HEADER).assertDoesNotExist()
@@ -76,8 +75,8 @@ class AppNavHostTransitionTest {
         composeTestRule.onNodeWithTag(TestTags.LOGIN_OTP_INPUT).performScrollTo().performTextInput("123456")
         composeTestRule.onNodeWithTag(TestTags.LOGIN_VERIFY_OTP_BUTTON).performScrollTo().performClick()
 
-        // Home screen should now be displayed
-        composeTestRule.onNodeWithTag(TestTags.HOME_WELCOME_BANNER).assertIsDisplayed()
+        // Chatbot Query screen should now be displayed
+        composeTestRule.onNodeWithText("Chat with Dr. AI").assertIsDisplayed()
         composeTestRule.onNodeWithTag(TestTags.LOGIN_HEADER).assertDoesNotExist()
     }
 

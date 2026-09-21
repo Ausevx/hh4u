@@ -228,6 +228,7 @@ describe('Chatbot Engine Backend — Adversarial & Boundary Test Suite', () => {
         translateToEnglish: jest.fn(),
         generateAnswer: jest.fn(),
         generatePersonalizedAnswer: jest.fn().mockRejectedValue(new Error('Database or AI service crashed')),
+        generateConversationalResponse: jest.fn(),
       };
       setAIServices({ llm: failingLLM });
 
@@ -321,6 +322,7 @@ describe('Chatbot Engine Backend — Adversarial & Boundary Test Suite', () => {
         translateToEnglish: jest.fn().mockRejectedValue(new Error('LLM Translation Service Timeout')),
         generateAnswer: jest.fn().mockRejectedValue(new Error('LLM Service Unavailable')),
         generatePersonalizedAnswer: jest.fn().mockRejectedValue(new Error('LLM Service Unavailable')),
+        generateConversationalResponse: jest.fn().mockRejectedValue(new Error('LLM Service Unavailable')),
       };
 
       setAIServices({ llm: failingLLM });
