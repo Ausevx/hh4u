@@ -19,7 +19,7 @@ export interface IChatbotConfig {
  */
 export function getChatbotConfig(): IChatbotConfig {
   const envThreshold = process.env.MATCH_CONFIDENCE_THRESHOLD;
-  const matchConfidenceThreshold = envThreshold !== undefined ? parseFloat(envThreshold) : DEFAULT_MATCH_CONFIDENCE_THRESHOLD;
+  const matchConfidenceThreshold = DEFAULT_MATCH_CONFIDENCE_THRESHOLD;
 
   const envTopK = process.env.TOP_CANDIDATES_COUNT;
   const topCandidatesCount = envTopK !== undefined ? parseInt(envTopK, 10) : DEFAULT_TOP_CANDIDATES_COUNT;
@@ -33,9 +33,7 @@ export function getChatbotConfig(): IChatbotConfig {
   };
 }
 
-export const MATCH_CONFIDENCE_THRESHOLD = parseFloat(
-  process.env.MATCH_CONFIDENCE_THRESHOLD || `${DEFAULT_MATCH_CONFIDENCE_THRESHOLD}`
-);
+export const MATCH_CONFIDENCE_THRESHOLD = DEFAULT_MATCH_CONFIDENCE_THRESHOLD;
 export const TOP_CANDIDATES_COUNT = parseInt(
   process.env.TOP_CANDIDATES_COUNT || `${DEFAULT_TOP_CANDIDATES_COUNT}`,
   10
