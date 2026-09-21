@@ -25,6 +25,8 @@ class FirebaseAuthManager @Inject constructor() {
             auth.signInAnonymously().await()
             true
         } catch (e: Exception) {
+            e.printStackTrace()
+            android.util.Log.e("FirebaseAuth", "signInAnonymously failed: ${e.message}", e)
             false
         }
     }

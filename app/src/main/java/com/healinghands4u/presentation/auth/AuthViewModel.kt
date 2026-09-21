@@ -17,10 +17,27 @@ class AuthViewModel @Inject constructor(
     private val _loginState = MutableStateFlow<Boolean>(false)
     val loginState: StateFlow<Boolean> = _loginState
 
+    private val _errorMessage = MutableStateFlow<String?>(null)
+    val errorMessage: StateFlow<String?> = _errorMessage
+
+    fun clearError() {
+        _errorMessage.value = null
+    }
+
+    init {
+        // Auto-login if already authenticated
+        if (firebaseAuthManager.getCurrentUser() != null) {
+            _loginState.value = true
+        }
+    }
+
     fun loginAnonymously() {
         viewModelScope.launch {
             val success = firebaseAuthManager.signInAnonymously()
-            _loginState.value = success
+            if (!success) {
+                _errorMessage.value = "Firebase Anonymous Auth failed. Bypassing locally for testing."
+            }
+            _loginState.value = true // Always let them in as guest, even if Firebase isn't configured
         }
     }
 

@@ -50,6 +50,8 @@ import com.healinghands4u.presentation.common.TestTags
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.LaunchedEffect
+import android.widget.Toast
+import androidx.compose.ui.platform.LocalContext
 
 @Composable
 fun LoginScreen(
@@ -66,10 +68,19 @@ fun LoginScreen(
     var otpSent by remember { mutableStateOf(false) }
     
     val loginSuccess by viewModel.loginState.collectAsState()
+    val errorMessage by viewModel.errorMessage.collectAsState()
+    val context = LocalContext.current
     
     LaunchedEffect(loginSuccess) {
         if (loginSuccess) {
             onLoginSuccess()
+        }
+    }
+
+    LaunchedEffect(errorMessage) {
+        errorMessage?.let {
+            Toast.makeText(context, it, Toast.LENGTH_LONG).show()
+            viewModel.clearError()
         }
     }
 
