@@ -1,7 +1,7 @@
-# BRIEFING — 2026-09-20T21:20:00Z
+# BRIEFING — 2026-09-21T09:06:15Z
 
 ## Mission
-Audit the entire Healing Hands4U codebase to eliminate all mock/stub AI service implementations and replace them with fully functional Google Gemini integrations for 100% real LLM answers and vector similarity search across backend and Android frontend.
+Fix critical Android runtime launch crash (Firebase Auth / Guest fallback), repair broken vector search pipeline & add diagnostic endpoint, add Overwrite/Append toggle in Admin Panel BulkUploadModal with backend support, and clarify static APK rebuild behavior on Admin dashboard.
 
 ## 🔒 My Identity
 - Archetype: sentinel
@@ -15,6 +15,8 @@ Audit the entire Healing Hands4U codebase to eliminate all mock/stub AI service 
 - Victory Auditor (Admin Portal): 1f37207c-53a0-4069-8068-dc5007c4938c (/Users/aditya/workspace/hh4u/.agents/victory_auditor_admin_portal/)
 - Orchestrator (Gemini Integration): 5549c483-85a1-4b61-8a21-3d5074dd4966 (/Users/aditya/workspace/hh4u/.agents/orchestrator_gemini_live/)
 - Victory Auditor (Gemini Integration): fa212284-da11-4ee0-b0cf-0d34602bcb9d (/Users/aditya/workspace/hh4u/.agents/victory_auditor_gemini_integration/)
+- Orchestrator (Crash & Vector & Admin Upload): eb00bb3d-4db1-429c-8682-225e4c47d5ab (/Users/aditya/workspace/hh4u/.agents/orchestrator_fix_crash_vector_upload/)
+- Victory Auditor (Crash & Vector & Admin Upload): d2dc3f61-8efb-40c1-a064-de4f682d53d9 (/Users/aditya/workspace/hh4u/.agents/victory_auditor_fix_crash_vector_upload/)
 
 ## 🔒 Key Constraints
 - No technical decisions — relay only
@@ -25,12 +27,10 @@ Audit the entire Healing Hands4U codebase to eliminate all mock/stub AI service 
 
 ## Routing Rationale
 - Route: General (teamwork_preview_orchestrator)
-- Decision Rationale: The request is a full-team multi-component SWE task covering stub eradication, Gemini LLM and Embedding integration, live MongoDB Atlas Vector search, Jest programmatic tests, and Android frontend review. User explicitly specified "Requested team: Full team".
+- Decision Rationale: Multi-part engineering task across Android (Firebase crash fix & guest fallback), Node.js backend (vector search pipeline, embedding generation, health endpoint, upload overwrite mode), and React admin panel (upload modal overwrite/append toggle, confirmation dialog, APK rebuild info note). Not a single self-contained light change.
 
 ## User Context
-- **Last user request**: Finalize Healing Hands4U by auditing codebase to eliminate mock/stub AI implementations and replace with live Gemini integrations:
-  - R1: Complete Stub Eradication across Node.js backend (aiContainer.ts, controllers) and Android frontend (no mock data / stubbed string responses in live text query pipeline).
-  - R2: Live Gemini & Atlas Integration (GeminiLLMService and GeminiEmbeddingService instantiated with env vars; Atlas Vector Search with live embeddings; live LLM completions).
+- **Last user request**: Fix critical Android crash on launch (Firebase try-catch & guest fallback), fix vector search pipeline (diagnose no results for vomiting/headache, verify index & generate missing embeddings, GET /api/admin/vector-status), admin upload Overwrite vs Append toggle with confirmation warning and backend mode support, and add APK rebuild clarification banner/tooltip on admin dashboard.
 - **Pending clarifications**: none
 - **Delivered results**:
   - Milestone 2 auth backend + UI shell completed & verified.
@@ -40,20 +40,19 @@ Audit the entire Healing Hands4U codebase to eliminate all mock/stub AI service 
   - Live Gemini & Atlas Vector Search Integration with Complete Stub Eradication across Backend & Android (523 backend tests, 4 live Gemini integration tests, 20 Android Chatbot unit tests, VICTORY CONFIRMED).
 
 ## Project Status
-- **Phase**: complete
+- **Phase**: auditing
 
 ## Victory Audit Status
 - **Triggered**: yes
-- **Verdict**: VICTORY CONFIRMED
+- **Verdict**: pending
 - **Retry count**: 0
 
 ## Active Tasks / Crons
-- None (all background crons and subagents cleanly terminated)
+- Cron 1 (Progress Reporting */8m): task-22
+- Cron 2 (Liveness Check */10m): task-24
 
 ## Artifact Index
 - /Users/aditya/workspace/hh4u/ORIGINAL_REQUEST.md — Verbatim user request
 - /Users/aditya/workspace/hh4u/.agents/ORIGINAL_REQUEST.md — Verbatim user request (agent copy)
 - /Users/aditya/workspace/hh4u/.agents/PROJECT.md — Global architecture and feature inventory
-- /Users/aditya/workspace/hh4u/.agents/orchestrator_gemini_live/handoff.md — Orchestrator completion handoff
-- /Users/aditya/workspace/hh4u/.agents/victory_auditor_gemini_integration/handoff.md — Independent Victory Audit Report (VICTORY CONFIRMED)
-- /Users/aditya/workspace/hh4u/.agents/sentinel/handoff.md — Sentinel final handoff report
+- /Users/aditya/workspace/hh4u/.agents/sentinel/BRIEFING.md — Sentinel persistent briefing

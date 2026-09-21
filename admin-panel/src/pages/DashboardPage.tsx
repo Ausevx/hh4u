@@ -25,6 +25,7 @@ import {
   HelpCircle,
   X,
   Download,
+  Info,
   Moon,
   Sun,
 } from 'lucide-react';
@@ -203,14 +204,24 @@ export const DashboardPage: React.FC = () => {
           </div>
 
           <div className="flex items-center space-x-2 sm:space-x-3">
-            <a
-              href="/healing-hands-4u.apk"
-              download
-              className="inline-flex items-center px-2 sm:px-3 py-1.5 border border-gray-200 dark:border-gray-800 rounded-lg text-xs font-semibold text-black dark:text-white bg-gray-100 dark:bg-gray-900 hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors shadow-sm cursor-pointer"
-            >
-              <Download className="w-3.5 h-3.5 sm:mr-1.5" />
-              <span className="hidden sm:inline">Download APK</span>
-            </a>
+            {/* Header APK Download Button with Hover Tooltip & Title */}
+            <div className="relative group inline-block">
+              <a
+                href="/healing-hands-4u.apk"
+                download
+                title="This APK connects to the live backend. Database changes via upload take effect immediately — no APK rebuild needed."
+                className="inline-flex items-center px-2 sm:px-3 py-1.5 border border-gray-200 dark:border-gray-800 rounded-lg text-xs font-semibold text-black dark:text-white bg-gray-100 dark:bg-gray-900 hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors shadow-sm cursor-pointer"
+              >
+                <Download className="w-3.5 h-3.5 sm:mr-1.5" />
+                <span className="hidden sm:inline">Download APK</span>
+              </a>
+              <div className="absolute right-0 top-full mt-2 hidden group-hover:flex items-start space-x-2 z-50 w-72 p-2.5 text-xs text-white bg-gray-900 dark:bg-gray-800 dark:text-gray-100 rounded-xl shadow-xl border border-gray-700 pointer-events-none transition-opacity duration-150">
+                <Info className="w-4 h-4 text-sky-400 flex-shrink-0 mt-0.5" />
+                <span className="leading-snug">
+                  This APK connects to the live backend. Database changes via upload take effect immediately — no APK rebuild needed.
+                </span>
+              </div>
+            </div>
 
             <button
               onClick={() => setIsBulkUploadOpen(true)}
@@ -256,6 +267,31 @@ export const DashboardPage: React.FC = () => {
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+        {/* Android Live Backend Sync Informational Banner */}
+        <div className="bg-sky-50 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-800/60 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xs">
+          <div className="flex items-start space-x-3.5">
+            <div className="w-10 h-10 rounded-xl bg-sky-100 dark:bg-sky-900/50 flex items-center justify-center text-sky-600 dark:text-sky-400 flex-shrink-0 mt-0.5">
+              <Info className="w-5 h-5" />
+            </div>
+            <div>
+              <h2 className="text-sm font-bold text-gray-900 dark:text-gray-100">
+                Android Mobile App (Live Backend Sync)
+              </h2>
+              <p className="text-xs text-gray-600 dark:text-gray-300 mt-0.5 leading-relaxed">
+                This APK connects to the live backend. Database changes via upload take effect immediately — no APK rebuild needed.
+              </p>
+            </div>
+          </div>
+          <a
+            href="/healing-hands-4u.apk"
+            download
+            className="inline-flex items-center px-3.5 py-2 border border-sky-300 dark:border-sky-700 rounded-xl text-xs font-semibold text-sky-900 dark:text-sky-200 bg-white dark:bg-sky-900/40 hover:bg-sky-100 dark:hover:bg-sky-900/70 transition-colors shadow-xs flex-shrink-0 cursor-pointer"
+          >
+            <Download className="w-3.5 h-3.5 mr-1.5" />
+            <span>Download APK</span>
+          </a>
+        </div>
+
         {/* KPI Stat Cards */}
         <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Card 1: Total Questions */}

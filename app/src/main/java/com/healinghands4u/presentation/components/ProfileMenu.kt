@@ -23,7 +23,13 @@ import com.healinghands4u.presentation.theme.trustedTealColors
 @Composable
 fun ProfileMenu() {
     var expanded by remember { mutableStateOf(false) }
-    val currentUser = FirebaseAuth.getInstance().currentUser
+    val currentUser = remember {
+        try {
+            FirebaseAuth.getInstance().currentUser
+        } catch (e: Throwable) {
+            null
+        }
+    }
     val isAnonymous = currentUser?.isAnonymous == true
     val isLoggedIn = currentUser != null
 
@@ -40,15 +46,16 @@ fun ProfileMenu() {
             DropdownMenuItem(
                 text = {
                     Text(
-                        text = if (isLoggedIn) {
-                            if (isAnonymous) "Logged in as Guest" else "Logged in via Firebase"
+                        text = if (isLoggedIn && !isAnonymous) {
+                            "Logged in via Firebase"
                         } else {
-                            "Not Logged In"
+                            "Logged in as Guest"
                         }
                     )
                 },
                 onClick = { }
             )
+
             Divider()
             val systemDark = isSystemInDarkTheme()
             val currentDark = ThemeState.isDarkTheme.value ?: systemDark

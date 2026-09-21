@@ -1,24 +1,30 @@
-## 2026-09-17T05:17:27Z
-You are the Android Core UI Explorer.
-Your working directory: /Users/aditya/workspace/hh4u/.agents/teamwork_preview_explorer_survey_android
-User request file: /Users/aditya/workspace/hh4u/ORIGINAL_REQUEST.md
+# Dispatch: Explorer Survey Android (Launch Crash Fix & Firebase Fallback)
 
-Read /Users/aditya/workspace/hh4u/ORIGINAL_REQUEST.md first.
-Investigate the existing Android codebase at /Users/aditya/workspace/hh4u:
-1. Locate Android project structure (app module, package name, build.gradle, settings.gradle).
-2. Locate BrandingConfig.kt and examine clinic data and branding assets/colors.
-3. Examine Jetpack Compose setup, Material Design 3 theme setup, existing navigation (Compose Navigation or custom).
-4. Examine any existing screens or components.
-5. Investigate requirements for Milestone 2 screens & components:
-   - Login Screen with OTP, Google, Guest options
-   - Home Dashboard with 3 main navigation cards
-   - Personalized Planner screen
-   - Disease List screen
-   - Shared DoctorContactFooter component using Material Design 3 and existing BrandingConfig.kt
-6. Write a comprehensive report in /Users/aditya/workspace/hh4u/.agents/teamwork_preview_explorer_survey_android/handoff.md covering:
-   - Existing Android code structure & package paths
-   - BrandingConfig.kt details
-   - Proposed UI architecture, Navigation flow, and component breakdown
-   - Screen specifications and UI tags/semantics for testing
-   - Recommendations for implementation
-Notify parent upon completion via send_message.
+You are the Explorer investigating Requirement R1: Android App Launch Crash Fix.
+
+## Working Directory
+`/Users/aditya/workspace/hh4u/.agents/teamwork_preview_explorer_survey_android/`
+
+## Context & Objectives
+- Authoritative Source: Read `/Users/aditya/workspace/hh4u/.agents/ORIGINAL_REQUEST.md` (specifically `2026-09-21T09:06:15Z`).
+- The Android app (Jetpack Compose, Hilt DI) crashes immediately on open.
+- Suspected causes: `AuthViewModel.init` calling `firebaseAuthManager.getCurrentUser()`, `ProfileMenu.kt` calling `FirebaseAuth.getInstance().currentUser` directly at composition time, or uninitialized Firebase/Hilt graph.
+- The app must survive even if Firebase is misconfigured or unavailable — defaulting gracefully to guest mode.
+
+## Your Tasks
+1. Search and inspect all usages of `FirebaseAuth.getInstance()`, Firebase Auth calls, `AuthViewModel`, `ProfileMenu`, `MainActivity`, and Hilt modules in the Android codebase.
+2. Trace the initialization sequence and identify all crash vectors.
+3. Check how Guest Mode is handled and how to ensure the user flow: Login screen -> "Continue as Guest" -> Chatbot screen works cleanly.
+4. Verify the build command (`./gradlew assembleDebug`) and inspect Android project configuration.
+5. Provide concrete code-level fix recommendations (exact files, line locations, error handling, try-catch wrapping, fallback defaults).
+6. Save your detailed findings in `report.md` and write a soft `handoff.md` in your working directory.
+
+## 2026-09-21T09:08:34Z
+You are Explorer 1 investigating Requirement R1: Android App Launch Crash Fix & Graceful Fallback.
+Your working directory is /Users/aditya/workspace/hh4u/.agents/teamwork_preview_explorer_survey_android/
+First, read /Users/aditya/workspace/hh4u/.agents/teamwork_preview_explorer_survey_android/DISPATCH.md and /Users/aditya/workspace/hh4u/.agents/ORIGINAL_REQUEST.md (specifically section 2026-09-21T09:06:15Z).
+Investigate the Android codebase (in /Users/aditya/workspace/hh4u/android or wherever the Android project is located).
+Inspect AuthViewModel.kt, FirebaseAuthManager.kt, ProfileMenu.kt, Application class, Hilt modules, and all usages of FirebaseAuth.getInstance().
+Trace why the app crashes immediately on launch. Check how to wrap FirebaseAuth calls in try-catch and gracefully fallback to guest mode if Firebase is not initialized or unavailable.
+Check the build configuration and verify the build command `./gradlew assembleDebug`.
+Write your full findings and recommendations to /Users/aditya/workspace/hh4u/.agents/teamwork_preview_explorer_survey_android/report.md, update progress.md, and create handoff.md. Send a completion message when done.

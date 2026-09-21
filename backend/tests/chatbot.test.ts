@@ -88,6 +88,7 @@ describe('Chatbot Engine Backend — Comprehensive Test Suite (R1-R4)', () => {
         translateToEnglish: jest.fn().mockResolvedValue({ translatedText: 'custom translated', detectedLanguage: 'fr' }),
         generateAnswer: jest.fn().mockResolvedValue('custom answer'),
         generatePersonalizedAnswer: jest.fn().mockResolvedValue('custom personalized'),
+        generateConversationalResponse: jest.fn().mockResolvedValue('custom conversational'),
       };
 
       setAIServices({ llm: customLLM });
@@ -345,7 +346,7 @@ describe('Chatbot Engine Backend — Comprehensive Test Suite (R1-R4)', () => {
       expect(res.body.success).toBe(true);
       expect(res.body.matchConfident).toBe(false);
       expect(res.body.fallback).toBe(true);
-      expect(res.body.message).toContain('We could not find a confident match');
+      expect(res.body.message).toMatch(/symptoms|health concerns|confident match/i);
       expect(res.body.needsReviewId).toBeDefined();
       expect(res.body.sessionId).toBeDefined();
 

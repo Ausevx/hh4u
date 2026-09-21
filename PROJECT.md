@@ -1,121 +1,124 @@
-# Project: Healing Hands4U Web Admin Portal and Backend API
+# Project: Healing Hands4U Ecosystem Crash Fix, Vector Search Repair & Admin Upload Mode
 
 ## Architecture
-The system consists of three primary subsystems:
-1. **MongoDB Atlas Data Layer with Vector Search**:
-   - Production database on MongoDB Atlas v8.0.32 (`cluster0.iifejq3.mongodb.net`, database `hh4u`).
-   - Mongoose collections: `level1questions`, `consultationqueries`, `answers`, `admins`.
-   - Atlas Vector Search index `vector_index` on `level1questions.embedding` (1536 dimensions, cosine similarity).
-   - Dual-mode search: Native `$vectorSearch` pipeline on live Atlas cluster, falling back to in-memory cosine similarity for offline unit tests.
-2. **Backend API & Excel Ingestion**:
-   - Express v5 / TypeScript backend running on port 5000.
-   - Modular Excel parser (`excelParserService`) using `xlsx` or `exceljs` supporting both buffer (file upload) and file path (CLI seed script).
-   - Admin authentication (`POST /api/admin/auth/login`) issuing JWTs with `role: 'admin'`.
-   - Security middleware (`adminAuthMiddleware`) enforcing HTTP 401 on unauthenticated access to `/api/admin/*`.
-   - Knowledge Base CRUD endpoints and multipart Excel import endpoint (`POST /api/admin/knowledge-base/import`).
-3. **Web Admin Portal (Frontend)**:
-   - React 18/19 + Vite + TypeScript SPA located in `admin-panel/`.
-   - Tailwind CSS design system with "Trusted Teal" color palette.
-   - Client-side routing with `ProtectedRoute` redirecting unauthenticated users to `/login`.
-   - Dashboard with KPI stats, searchable & paginated knowledge base table with expandable diagnostic query & remedy details.
-   - Add/Edit/Delete modals with full validation.
-   - Drag-and-drop `.xlsx` file uploader with upload status, progress feedback, and error reporting.
+The system consists of three interconnected subsystems in the Healing Hands4U ecosystem:
+1. **Android Mobile Application (`android/`)**:
+   - Jetpack Compose, Material 3, Hilt Dependency Injection.
+   - Authentication flow: Email OTP, Google Sign-In, and Guest Mode.
+   - Resilient fallback architecture: The app must open and run even when `FirebaseApp` is not initialized or `google-services.json` is missing/misconfigured, defaulting smoothly to Guest Mode.
+   - Safe navigation from Login Screen -> "Continue as Guest" -> Home Dashboard -> Chatbot Query Screen.
+2. **Express & MongoDB Atlas Backend (`backend/`)**:
+   - Express v5 / TypeScript on port 5000.
+   - MongoDB Atlas (`cluster0.iifejq3.mongodb.net`, database `hh4u`) with Atlas Vector Search index `vector_index` on `level1questions.embedding` (1536 dims, cosine).
+   - Live Gemini Embeddings (`gemini-embedding-2`, 1536 dimensions) and Gemini LLM (`gemini-2.5-flash`).
+   - Vector Search Service & Startup Backfill: Replaces outdated synthetic mock embeddings with live Gemini embeddings to enable query matching for remedies (e.g. "vomiting", "headache").
+   - Diagnostic Endpoint (`GET /api/admin/vector-status`): Real-time health check on Level1Question embeddings, Atlas index status, and Gemini API key status.
+   - Bulk Upload Pipeline (`POST /api/admin/knowledge-base/import`): Supports `mode: 'append' | 'overwrite'` to either append new records or wipe existing records before inserting.
+3. **React Web Admin Portal (`admin-panel/`)**:
+   - React 18/19 + Vite + TypeScript + Tailwind CSS.
+   - Bulk Upload Modal (`BulkUploadModal.tsx`): Overwrite vs Append toggle (Append default) with explicit confirmation modal on Overwrite selection.
+   - Dashboard (`DashboardPage.tsx`): Informational banner and hover tooltip on APK download button explaining live backend connection behavior.
 
 ## Feature Inventory
 Every feature from the survey and requirements is assigned to a milestone:
 
 | # | Feature | Description | Milestone | Source |
 |---|---------|-------------|-----------|--------|
-| 1 | MongoDB Atlas Connection & Config | Robust connection to MongoDB Atlas with database isolation (`DB_NAME=hh4u`) | M1 | R1, Survey |
-| 2 | Knowledge Base Schema Evolution | Updated `Answer.ts` with optional `level1QuestionId`, `questionText`, `answerType`, and media fields | M1 | R1, Survey |
-| 3 | Atlas Vector Search Index Management | DDL helper/script to create and verify `vector_index` on `level1questions` | M1 | R1, Acceptance 1 |
-| 4 | Dual-Mode Vector Search Query | Vector search with native `$vectorSearch` and local cosine fallback | M1 | R1, Acceptance 1 |
-| 5 | Knowledge Base CRUD Data Operations | Programmatic CRUD operations and repository methods on knowledge base | M1 | Acceptance 1 |
-| 6 | Excel Workbook Parser | Multi-sheet parser for `level1`, `ConsultationQueries`, and `Answers` from buffer or path | M2 | R2, Survey |
-| 7 | Excel Header & Sheet Validation | Rejection of non-xlsx files, missing sheets, or missing columns with descriptive 400 errors | M2 | R2, Acceptance 2 |
-| 8 | Media & YouTube URL Extraction | Regex extraction of YouTube video IDs from Reason and Remedy cells into `videoUrl` | M2 | Survey |
-| 9 | Knowledge Base CLI Seed Script | Executable script seeding 184 questions, 184 consultation queries, and 220 answers into MongoDB Atlas | M2 | R2, Acceptance 1 |
-| 10 | Admin User Authentication & JWT | Admin login API endpoint issuing JWT with `role: 'admin'` and password/credential verification | M3 | R3, Acceptance 3 |
-| 11 | Admin Authorization Middleware | Middleware guarding `/api/admin/*`, rejecting unauthenticated requests with HTTP 401 | M3 | R3, Acceptance 3 |
-| 12 | Admin Knowledge Base REST APIs | REST endpoints for listing (search/pagination), detail, create, update, delete knowledge base entries | M3 | R4, Acceptance 1 |
-| 13 | Multipart Excel Upload API | `POST /api/admin/knowledge-base/import` handling file upload via `multer` | M3 | R2, R4, Acceptance 4 |
-| 14 | Admin Portal Vite/React Toolchain | Scaffolding Vite, React, TypeScript, Tailwind CSS, Lucide icons in `admin-panel/` | M4 | R4, Survey |
-| 15 | Admin Portal Authentication & Guard | `AuthContext`, `localStorage` token storage, `LoginPage`, and `ProtectedRoute` redirect | M4 | R3, R4, Acceptance 3, 4 |
-| 16 | Admin Portal Knowledge Dashboard | KPI stat cards and responsive Knowledge Base table with search and pagination | M4 | R4, Acceptance 4 |
-| 17 | Knowledge Base CRUD Modals | UI modals/forms to add, edit, and delete questions, diagnostic queries, and remedies | M4 | R4, Acceptance 4 |
-| 18 | Drag-and-Drop Bulk Excel Importer | UI component for `.xlsx` drag-and-drop upload, status bar, and error display | M4 | R2, R4, Acceptance 4 |
-| 19 | E2E Opaque-Box Test Suite (Tiers 1-4) | Comprehensive independent test suite covering all features and acceptance criteria | E2E-Track | Dual Track |
-| 20 | Adversarial Coverage Hardening (Tier 5) | White-box stress testing, gap analysis, and bug hardening | M5 | Dual Track |
+| 1 | Android Launch Crash Fix | Wrap `FirebaseAuth.getInstance()` calls in `AuthViewModel` & `FirebaseAuthManager` with try-catch; default to guest on failure | M1 | R1, Survey |
+| 2 | Android Composition Crash Fix | Guard `ProfileMenu.kt` composition-level Firebase call with try-catch / remembered state so navigation to Chatbot doesn't crash | M1 | R1, Survey |
+| 3 | Android Guest Flow & Build Validation | Ensure Login -> Continue as Guest -> Chatbot flow works; verify `./gradlew assembleDebug` compiles cleanly | M1 | R1, Acceptance |
+| 4 | Vector Search Mock-to-Live Backfill | Startup check & backfill utility detecting missing/mock embeddings and regenerating live Gemini 1536-dim embeddings in rate-limited batches | M2 | R2, Survey |
+| 5 | Vector Search Pipeline Remedy Resolution | Verify Atlas vector index and ensure queries like "vomiting" and "headache" return matching remedies with confidence > 0.75 | M2 | R2, Acceptance |
+| 6 | Vector Search Diagnostic API | `GET /api/admin/vector-status` returning total questions, embeddings count, Atlas vector index status, and Gemini key status | M2 | R2, Acceptance |
+| 7 | Admin Bulk Upload Append vs Overwrite Toggle | Add mode selection in `BulkUploadModal.tsx` (Append default, Overwrite option) | M3 | R3, Survey |
+| 8 | Admin Bulk Upload Overwrite Confirmation Modal | Show high-visibility confirmation warning dialog when Overwrite is selected before enabling mode | M3 | R3, Acceptance |
+| 9 | Backend Bulk Upload Mode Handling | Update `POST /api/admin/knowledge-base/import` controller and service to handle `mode: 'append' | 'overwrite'` | M3 | R3, Acceptance |
+| 10 | Admin Dashboard APK Rebuild Note | Add info banner and tooltip near APK download button clarifying live backend connection | M4 | R4, Acceptance |
+| 11 | Ecosystem Verification & Hardening | Full verification of all builds (`./gradlew assembleDebug`, backend `npm run build` & `npm test`, admin `npm run build`), review, and audit | M5 | Acceptance |
 
 ## Milestones
 | # | Name | Scope | Dependencies | Status |
 |---|------|-------|-------------|--------|
-| E2E | E2E Testing Suite Track | Design test runner, test harness, and Tiers 1-4 tests; publish TEST_READY.md | none | DONE |
-| M1 | MongoDB Atlas Data Layer & Vector Search | Features 1, 2, 3, 4, 5 (Atlas connection, schema evolution, vector index, CRUD) | none | DONE |
-| M2 | Excel Parser & Seed Script | Features 6, 7, 8, 9 (Excel parser, validation, media extraction, CLI seed script) | M1 | DONE |
-| M3 | Admin Auth & Knowledge Base REST APIs | Features 10, 11, 12, 13 (Auth endpoints, 401 middleware, CRUD REST APIs, upload endpoint) | M1, M2 | DONE |
-| M4 | Web Admin Portal UI & Bulk Import | Features 14, 15, 16, 17, 18 (React Vite portal, login, dashboard, CRUD modals, bulk upload) | M3 | DONE |
-| M5 | Final E2E Test Suite Pass & Adversarial Hardening | Features 19, 20 (100% pass on Tiers 1-4 E2E tests, Tier 5 adversarial coverage) | M4, E2E | DONE |
+| M1 | Android App Launch Crash Fix & Guest Mode | Features 1, 2, 3 (FirebaseAuth safe wrappers, ProfileMenu guard, assembleDebug) | none | DONE |
+| M2 | Backend Vector Search Repair & Diagnostic | Features 4, 5, 6 (Backfill utility, startup check, remedy search fix, GET /api/admin/vector-status) | none | DONE |
+| M3 | Admin Panel Upload Toggle & Backend Mode | Features 7, 8, 9 (BulkUploadModal toggle, confirmation modal, backend mode support) | M2 | DONE |
+| M4 | Admin Dashboard APK Rebuild Clarification | Feature 10 (Dashboard info banner and APK download button tooltip) | none | DONE |
+| M5 | Full Ecosystem Integration & Verification | Feature 11 (End-to-end build validation, reviewer verification, challenger testing, forensic audit) | M1, M2, M3, M4 | DONE |
 
 ## Interface Contracts
 
-### Backend Data Layer ↔ Excel Ingestion
-- `parseExcelBuffer(buffer: Buffer): Promise<ParsedExcelData>`
-- `parseExcelFile(filePath: string): Promise<ParsedExcelData>`
-- `ParsedExcelData`:
-  ```ts
-  interface ParsedExcelData {
-    level1Questions: Array<{ canonicalQuestionText: string; rawRow: number }>;
-    consultationQueries: Array<{ questionText: string; diagnosticQuestions: string[]; rawRow: number }>;
-    answers: Array<{ questionText: string; reasonText: string; remedyText: string; videoUrl?: string; answerType: 'level1' | 'diagnostic'; rawRow: number }>;
-    stats: { totalRows: { level1: number; consultation: number; answers: number }; dataRows: { level1: number; consultation: number; answers: number } };
+### Backend Diagnostic Endpoint
+- `GET /api/admin/vector-status`
+- Response:
+  ```json
+  {
+    "success": true,
+    "totalLevel1Questions": 184,
+    "questionsWithEmbeddings": 184,
+    "vectorIndexExists": true,
+    "vectorIndexQueryable": true,
+    "geminiApiKeyConfigured": true,
+    "geminiApiKeyStatus": "CONFIGURED",
+    "timestamp": "2026-09-21T09:20:00.000Z"
   }
   ```
-- Error format: Throws `ExcelValidationError` with `statusCode: 400`, `message: string`, `details?: string[]`.
 
-### Backend API ↔ Frontend Admin Portal
-- Base URL: `/api/admin`
-- Headers: `Authorization: Bearer <token>`
-- Authentication:
-  - `POST /api/admin/auth/login` -> Request: `{ email, password }` -> Response: `{ success: true, token: string, admin: { email: string, role: string } }`
-  - Unauthenticated requests return HTTP 401: `{ success: false, message: "Authentication token missing or invalid" }`
-- Knowledge Base:
-  - `GET /api/admin/stats` -> Response: `{ success: true, stats: { totalQuestions: number, totalConsultations: number, totalAnswers: number, vectorIndexActive: boolean } }`
-  - `GET /api/admin/knowledge-base?search=&page=1&limit=20` -> Response: `{ success: true, total: number, page: number, totalPages: number, items: KnowledgeBaseItem[] }`
-  - `POST /api/admin/knowledge-base` -> Request: `{ canonicalQuestionText, tags, diagnosticQuestions: string[], answerText, homeRemedyText, videoUrl }`
-  - `PUT /api/admin/knowledge-base/:id` -> Request: Partial<KnowledgeBaseItem>
-  - `DELETE /api/admin/knowledge-base/:id` -> Cascades to consultation query and answer.
-  - `POST /api/admin/knowledge-base/import` -> `multipart/form-data`, file field `file` -> Response: `{ success: true, counts: { questions: number, consultations: number, answers: number } }`
+### Backend Bulk Upload Contract
+- `POST /api/admin/knowledge-base/import?mode=append` or `?mode=overwrite`
+- Body: `multipart/form-data` with `file: <.xlsx buffer>`, `mode: "append" | "overwrite"`
+- Response:
+  ```json
+  {
+    "success": true,
+    "mode": "append",
+    "counts": {
+      "questions": 184,
+      "consultations": 184,
+      "answers": 220
+    }
+  }
+  ```
+
+### Frontend Upload Modal Contract
+- `UploadMode = 'append' | 'overwrite'`
+- Default: `'append'`
+- When `'overwrite'` clicked: Open confirmation dialog warning of permanent database deletion. If confirmed, set `uploadMode = 'overwrite'` and display warning banner. If canceled, keep `'append'`.
+
+### APK Rebuild Note String
+- Verbatim: `"This APK connects to the live backend. Database changes via upload take effect immediately — no APK rebuild needed."`
 
 ## Code Layout
 ```
 /Users/aditya/workspace/hh4u/
+├── android/
+│   ├── app/src/main/java/com/healinghands4u/
+│   │   ├── HealingHandsApp.kt
+│   │   ├── MainActivity.kt
+│   │   ├── auth/
+│   │   │   ├── FirebaseAuthManager.kt
+│   │   │   └── AuthViewModel.kt
+│   │   └── ui/
+│   │       ├── components/ProfileMenu.kt
+│   │       └── screens/auth/LoginScreen.kt
+│   └── gradlew
 ├── backend/
 │   ├── src/
-│   │   ├── config/             # db.ts (Atlas connection & dbName config)
-│   │   ├── controllers/        # adminAuthController.ts, adminKnowledgeBaseController.ts
-│   │   ├── middlewares/        # adminAuthMiddleware.ts (401 enforcement)
-│   │   ├── models/             # Level1Question.ts, ConsultationQuery.ts, Answer.ts, Admin.ts
-│   │   ├── routes/             # adminRoutes.ts (mounted at /api/admin)
-│   │   ├── scripts/            # seedKnowledgeBase.ts, createVectorIndex.ts
-│   │   ├── services/           # excelParserService.ts, vectorSearchService.ts, adminKnowledgeBaseService.ts
-│   │   └── utils/              # vectorSimilarity.ts
-│   └── tests/                  # e2e and unit test suites
-├── admin-panel/                # React + Vite + TypeScript Admin Portal
-│   ├── src/
-│   │   ├── components/         # Navbar, StatCard, KnowledgeTable, EntryModal, BulkUploadZone
-│   │   ├── contexts/           # AuthContext.tsx
-│   │   ├── pages/              # LoginPage.tsx, DashboardPage.tsx
-│   │   └── services/           # api.ts
-│   ├── index.html
-│   ├── package.json
-│   ├── tsconfig.json
-│   └── vite.config.ts
-├── tests/                      # Project-level E2E opaque-box test suites
-│   ├── e2e_runner.sh
-│   ├── tier1_feature_coverage.test.ts
-│   ├── tier2_boundary_corner.test.ts
-│   ├── tier3_pairwise_combinations.test.ts
-│   └── tier4_real_world_scenarios.test.ts
-└── database-dummy.xlsx
+│   │   ├── index.ts
+│   │   ├── controllers/
+│   │   │   ├── adminKnowledgeBaseController.ts
+│   │   │   └── adminVectorController.ts
+│   │   ├── routes/
+│   │   │   └── adminRoutes.ts
+│   │   └── services/
+│   │       ├── vectorSearchService.ts
+│   │       ├── vectorBackfillService.ts
+│   │       └── adminKnowledgeBaseService.ts
+│   └── tests/
+└── admin-panel/
+    ├── src/
+    │   ├── components/BulkUploadModal.tsx
+    │   ├── pages/DashboardPage.tsx
+    │   ├── services/api.ts
+    │   └── types/index.ts
+    └── public/healing-hands-4u.apk
 ```

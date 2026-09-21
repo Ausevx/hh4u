@@ -276,10 +276,21 @@ export const importExcel = async (req: Request, res: Response): Promise<void> =>
       return;
     }
 
-    const result = await adminKnowledgeBaseService.importKnowledgeBaseFromExcel(req.file.buffer);
+    const rawMode = (req.body?.mode || req.query?.mode || 'append').toString().toLowerCase().trim();
+    if (rawMode !== 'append' && rawMode !== 'overwrite') {
+      res.status(400).json({
+        success: false,
+        message: "Invalid mode. Allowed modes are 'append' or 'overwrite'",
+      });
+      return;
+    }
+    const mode: 'append' | 'overwrite' = rawMode;
+
+    const result = await adminKnowledgeBaseService.importKnowledgeBaseFromExcel(req.file.buffer, mode);
 
     res.status(200).json({
       success: true,
+      mode,
       counts: result.counts,
     });
   } catch (err: any) {

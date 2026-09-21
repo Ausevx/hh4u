@@ -1,14 +1,18 @@
-# Progress Log — Android Core UI Explorer
+# Progress Log — Android Launch Crash & Fallback Explorer
 
-**Last visited**: 2026-09-17T05:20:30+05:30
+**Last visited**: 2026-09-21T14:45:00+05:30
+
+## Current Focus
+Requirement R1: Android App Launch Crash Fix & Graceful Fallback.
 
 ## Status
-- [x] Initialized DISPATCH.md and BRIEFING.md
-- [x] Located Android project structure (app module, package name com.healinghands4u, build.gradle.kts, settings.gradle.kts)
-- [x] Located BrandingConfig.kt and examined clinic data and branding assets/colors
-- [x] Examined Jetpack Compose setup, Material Design 3 theme setup, existing navigation
-- [x] Examined existing screens or components (all presentation packages are currently empty, greenfield UI shell)
-- [x] Investigated requirements for Milestone 2 screens & components (Login, Home, Planner, Disease List, DoctorContactFooter)
-- [x] Formulated UI architecture, navigation routes, test tags, and implementation recommendations
-- [x] Compiled comprehensive handoff.md report (/Users/aditya/workspace/hh4u/.agents/teamwork_preview_explorer_survey_android/handoff.md)
+- [x] Read DISPATCH.md and ORIGINAL_REQUEST.md (specifically 2026-09-21T09:06:15Z)
+- [x] Updated BRIEFING.md and initialized investigation state
+- [x] Located all usages of FirebaseAuth and Firebase initialization in Android codebase
+- [x] Inspected AuthViewModel.kt, FirebaseAuthManager.kt, ProfileMenu.kt, Application class, Hilt modules
+- [x] Traced crash vectors on app launch (Firebase init, Hilt injection graph, Compose lifecycle)
+- [x] Analyzed Guest mode fallback flow (Login -> Continue as Guest -> Chatbot)
+- [x] Verified build configuration and `./gradlew assembleDebug` (passed, code 0)
+- [x] Drafted full investigation report (`report.md`) with code-level fix recommendations
+- [x] Wrote 5-component `handoff.md`
 - [x] Send completion message to parent

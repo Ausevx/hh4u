@@ -8,6 +8,7 @@ import {
   UpdateKnowledgeBaseInput,
   PaginatedResponse,
   ImportResponse,
+  UploadMode,
 } from '../types';
 
 export class ApiError extends Error {
@@ -158,16 +159,18 @@ export const api = {
 
     importExcel: async (
       file: File,
+      mode: UploadMode = 'append',
       onProgress?: (percent: number) => void
     ): Promise<ImportResponse> => {
       const formData = new FormData();
       formData.append('file', file);
+      formData.append('mode', mode);
 
       const token = tokenStorage.get();
 
       return new Promise<ImportResponse>((resolve, reject) => {
         const xhr = new XMLHttpRequest();
-        xhr.open('POST', `${BASE_URL}/knowledge-base/import`);
+        xhr.open('POST', `${BASE_URL}/knowledge-base/import?mode=${encodeURIComponent(mode)}`);
 
         if (token) {
           xhr.setRequestHeader('Authorization', `Bearer ${token}`);

@@ -104,8 +104,11 @@ export interface ImportCounts {
   answers: number;
 }
 
+export type UploadMode = 'append' | 'overwrite';
+
 export interface ImportResponse {
   success: boolean;
+  mode?: UploadMode;
   counts: ImportCounts;
   message?: string;
   details?: string[];

@@ -12,6 +12,7 @@ import { parseExcelBuffer, ParsedExcelData, ExcelValidationError } from './excel
 
 export interface KnowledgeBaseImportResult {
   success: boolean;
+  mode?: 'append' | 'overwrite';
   counts: {
     questions: number;
     consultations: number;
@@ -668,7 +669,10 @@ export class AdminKnowledgeBaseService {
    * Parses an in-memory Excel (.xlsx) buffer, generates vector embeddings,
    * and idempotently upserts questions, consultation queries, and answers into MongoDB.
    */
-  public async importKnowledgeBaseFromExcel(buffer: Buffer): Promise<KnowledgeBaseImportResult> {
+  public async importKnowledgeBaseFromExcel(
+    buffer: Buffer,
+    mode: 'append' | 'overwrite' = 'append'
+  ): Promise<KnowledgeBaseImportResult> {
     if (!buffer || buffer.length === 0) {
       throw new ExcelValidationError('Empty file buffer provided', 400);
     }
@@ -676,19 +680,34 @@ export class AdminKnowledgeBaseService {
     // 1. Parse and validate Excel buffer (throws ExcelValidationError 400 before touching DB)
     const parsed: ParsedExcelData = await parseExcelBuffer(buffer);
 
-    // 2. Generate 1536-dimensional embeddings for Level 1 questions
+    // 2. Generate 1536-dimensional embeddings for Level 1 questions in rate-limited batches of 10
     const ai = getAIServices();
     const questionTexts = parsed.level1Questions.map((q) => q.canonicalQuestionText);
-    let embeddings: number[][];
-    if (typeof (ai.embedding as any).generateBatchEmbeddings === 'function') {
-      embeddings = await (ai.embedding as any).generateBatchEmbeddings(questionTexts);
-    } else {
-      embeddings = await Promise.all(questionTexts.map((text) => ai.embedding.generateEmbedding(text)));
+    const embeddings: number[][] = [];
+    const BATCH_SIZE = 10;
+
+    for (let i = 0; i < questionTexts.length; i += BATCH_SIZE) {
+      const batch = questionTexts.slice(i, i + BATCH_SIZE);
+      const batchEmbeddings = await Promise.all(
+        batch.map((text) => ai.embedding.generateEmbedding(text))
+      );
+      embeddings.push(...batchEmbeddings);
+      if (i + BATCH_SIZE < questionTexts.length) {
+        await new Promise((resolve) => setTimeout(resolve, 300));
+      }
     }
 
     // 3. Ingest into MongoDB with transaction if replica set is available
     return this.executeWithTransaction(async (session) => {
       const opts = session ? { session } : {};
+
+      // In overwrite mode, cleanly wipe existing knowledge base collections before inserting
+      if (mode === 'overwrite') {
+        await Answer.deleteMany({}, opts);
+        await ConsultationQuery.deleteMany({}, opts);
+        await Level1Question.deleteMany({}, opts);
+      }
+
       const questionMap = new Map<string, mongoose.Types.ObjectId>();
 
       // A. Upsert Level 1 Questions
@@ -792,6 +811,7 @@ export class AdminKnowledgeBaseService {
 
       return {
         success: true,
+        mode,
         counts: {
           questions: parsed.level1Questions.length,
           consultations: parsed.consultationQueries.length,

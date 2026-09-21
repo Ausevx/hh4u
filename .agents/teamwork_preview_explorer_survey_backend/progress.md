@@ -1,16 +1,17 @@
-# Progress: Backend Architecture Explorer
+# Progress: Backend Vector Search & Bulk Upload Explorer
 
-Last visited: 2026-09-17T05:20:00+05:30
+Last visited: 2026-09-21T09:20:00Z
 
 ## Status
-- [x] Initialized DISPATCH.md and BRIEFING.md
-- [x] Investigate backend directory structure and server entry point
-- [x] Inspect Mongoose schemas (User and related)
-- [x] Check existing authentication and routing
-- [x] Check package.json dependencies and test setup
-- [x] Test Atlas connection & network sandbox constraints
-- [x] Analyze API requirements for OTP, Google, Guest, JWT
-- [x] Formulate exact API contracts and recommendations
-- [ ] Write handoff.md
-- [ ] Update BRIEFING.md
-- [ ] Send handoff message to parent
+- [x] Received dispatch and initialized BRIEFING.md
+- [x] Inspected backend directory structure and vector search implementation
+- [x] Diagnosed why "vomiting" and "headache" queries return no results (mock vectors stored vs Gemini query vectors)
+- [x] Analyzed Level1Question documents and verified embedding generation
+- [x] Checked Atlas Vector Search index (READY, 1536 dims, cosine) vs in-memory cosine fallback
+- [x] Designed startup check / backfill mechanism with rate-limited chunking
+- [x] Designed GET /api/admin/vector-status diagnostic endpoint (mounted before adminAuthMiddleware)
+- [x] Inspected bulk upload endpoint and designed support for mode: 'append' | 'overwrite'
+- [x] Verified build and test commands (`npm run build`, `npm test`)
+- [x] Produced comprehensive report.md and 5-component handoff.md
+- [x] Updated BRIEFING.md and progress.md
+- [/] Notifying parent agent via send_message

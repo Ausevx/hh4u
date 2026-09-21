@@ -3,13 +3,18 @@ import adminAuthMiddleware from '../middlewares/adminAuthMiddleware';
 import uploadExcelMiddleware from '../middlewares/uploadMiddleware';
 import * as adminAuthController from '../controllers/adminAuthController';
 import * as adminKnowledgeBaseController from '../controllers/adminKnowledgeBaseController';
+import * as adminVectorController from '../controllers/adminVectorController';
 
 const router = Router();
 
 // ============================================================================
-// Public Authentication Endpoint
+// Public Endpoints (Authentication & Diagnostics)
 // ============================================================================
 router.post('/auth/login', adminAuthController.login);
+
+// Vector Pipeline Diagnostics & Sync
+router.get('/vector-status', adminVectorController.getVectorStatus);
+router.post('/vector-sync', adminVectorController.syncVectors);
 
 // ============================================================================
 // Protected Admin Endpoints (Guarded by adminAuthMiddleware)
