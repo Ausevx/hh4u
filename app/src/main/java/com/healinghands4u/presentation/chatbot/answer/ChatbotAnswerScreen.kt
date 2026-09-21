@@ -166,13 +166,17 @@ fun ChatbotAnswerContent(
             Spacer(modifier = Modifier.height(16.dp))
         }
 
-        // RxCard: Visual Centerpiece
-        RxCard(
-            remedyName = answerText,
-            dosage = dosage ?: "As advised by your homeopathic physician",
-            homeRemedy = homeRemedy,
-            safetyDisclaimer = safetyDisclaimer ?: "If disease does not cure within 2 days then consult doctor right now"
-        )
+        // Only show the RxCard if we have a real prescription/remedy
+        val hasPrescription = dosage != null || homeRemedy != null || (answerText.length < 50 && headerMessage != answerText)
+        if (hasPrescription) {
+            // RxCard: Visual Centerpiece
+            RxCard(
+                remedyName = answerText,
+                dosage = dosage ?: "As advised by your homeopathic physician",
+                homeRemedy = homeRemedy,
+                safetyDisclaimer = safetyDisclaimer ?: "If disease does not cure within 2 days then consult doctor right now"
+            )
+        }
 
         // VideoLink: External video guide if available
         if (!videoUrl.isNullOrBlank()) {

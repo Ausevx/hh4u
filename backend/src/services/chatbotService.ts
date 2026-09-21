@@ -289,6 +289,37 @@ export class ChatbotService {
       status: 'pending',
     });
     await needsReview.save();
+    
+    // Instead of a hardcoded fallback message, let the LLM generate a conversational response 
+    // explaining that we couldn't find a specific homeopathic remedy for their query.
+    let fallbackText = config.fallbackMessage;
+    if (input.intent === 'direct_answer') {
+      try {
+        fallbackText = await ai.llm.generateAnswer(translatedQueryText, {
+          canonicalQuestion: "None (Fallback)",
+          baseAnswer: "I could not find a specific homeopathic remedy for your query in my database. Please clarify your symptoms or consult a doctor.",
+          remedy: "None",
+        });
+      } catch (e) {
+        console.error("Fallback LLM failed", e);
+      }
+      
+      return {
+        success: true,
+        sessionId: session._id.toString(),
+        matchConfident: false,
+        confidenceScore,
+        intent: 'direct_answer',
+        fallback: true,
+        message: "Fallback generated",
+        needsReviewId: needsReview._id.toString(),
+        matchCandidates,
+        answer: {
+          id: new mongoose.Types.ObjectId().toString(),
+          answerText: fallbackText,
+        }
+      };
+    }
 
     return {
       success: true,
