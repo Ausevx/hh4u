@@ -20,6 +20,7 @@ export interface ILLMService {
    * Translates non-English or multilingual query text into canonical English.
    */
   translateToEnglish(text: string, sourceLanguage?: string): Promise<TranslateResult>;
+  classifyIntent?(text: string): Promise<'MEDICAL' | 'GREETING' | 'CHITCHAT' | 'UNCLEAR'>;
 
   /**
    * Generates a standard answer or summary from a prompt and context.

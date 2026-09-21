@@ -89,7 +89,11 @@ export class ChatbotService {
     }
 
     // 3. Audio Transcription (if voice mode)
-    let originalQueryText = '';
+    let parsedUserId: mongoose.Types.ObjectId | undefined = undefined;
+  if (input.userId && mongoose.Types.ObjectId.isValid(input.userId.toString())) {
+    parsedUserId = new mongoose.Types.ObjectId(input.userId.toString());
+  }
+  let originalQueryText = '';
     let detectedLang = input.language;
 
     if (inputMode === 'voice' && rawAudio) {
@@ -102,6 +106,33 @@ export class ChatbotService {
 
     if (!originalQueryText) {
       throw new Error('Query text or voiceData is required');
+    }
+
+    // 3.5 Intent Classification (Pre-processing)
+    const userIntent = ai.llm.classifyIntent ? await ai.llm.classifyIntent(originalQueryText) : 'MEDICAL';
+    
+    if (userIntent === 'GREETING' || userIntent === 'CHITCHAT') {
+      // Fast path: skip vector search entirely for casual chat
+      const fallbackText = await ai.llm.generateConversationalResponse(originalQueryText);
+      const session = new ChatbotSession({
+        userId: parsedUserId,
+        originalQueryText,
+        intent: input.intent,
+        matchConfident: false,
+        inputMode,
+      });
+      await session.save();
+      
+      return {
+        success: true,
+        sessionId: session._id.toString(),
+        matchConfident: false,
+        confidenceScore: 0,
+        intent: input.intent,
+        fallback: true,
+        message: fallbackText,
+        matchCandidates: [],
+      };
     }
 
     // 4. Multilingual Translation to English
@@ -128,11 +159,7 @@ export class ChatbotService {
     const matchConfident = !!(topCandidate && topCandidate.score >= config.matchConfidenceThreshold);
     const confidenceScore = topCandidate ? topCandidate.score : 0;
 
-    // Convert userId to ObjectId if valid string
-    let parsedUserId: mongoose.Types.ObjectId | undefined = undefined;
-    if (input.userId && mongoose.Types.ObjectId.isValid(input.userId.toString())) {
-      parsedUserId = new mongoose.Types.ObjectId(input.userId.toString());
-    }
+    
 
     // 7. Confident Match Branch
     if (matchConfident && topCandidate) {
