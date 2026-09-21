@@ -109,6 +109,30 @@ Only output valid JSON.`;
       return advice;
     }
   }
+  async generateConversationalResponse(userMessage: string): Promise<string> {
+    const prompt = `You are a warm, friendly homeopathic health assistant chatbot for Healing Hands4U clinic (Dr. Anjali Jariwala).
+
+The user just sent: "${userMessage}"
+
+This message doesn't appear to be a specific health question. Respond naturally and conversationally:
+- If it's a greeting (hi, hello, yo, hey, etc.), greet them warmly back.
+- If it's casual chat, be friendly and steer the conversation toward health.
+- Always end by gently asking them to describe their symptoms or health concerns so you can help.
+- Keep your response short (2-3 sentences max), warm, and human.
+- Do NOT give any medical advice or mention remedies. Just be friendly and ask what's bothering them.
+
+Respond directly (no JSON, no formatting):`;
+
+    try {
+      const response = await this.generateContentWithFallback({
+        contents: prompt,
+      });
+      return response.text || "Hey there! 👋 I'm your homeopathic health assistant. How can I help you today? Please describe any symptoms or health concerns you're experiencing.";
+    } catch (err: any) {
+      console.warn(`[GeminiLLMService] Conversational response failed: ${err?.message}`);
+      return "Hey there! 👋 I'm your homeopathic health assistant at Healing Hands4U. Please tell me about your symptoms or health concerns and I'll do my best to help!";
+    }
+  }
 
   async generatePersonalizedAnswer(params: PersonalizeAnswerParams): Promise<string> {
     const prompt = `You are a helpful, professional, and empathetic homeopathic chatbot assistant representing Dr. Anjali Jariwala at Healing Hands4U.

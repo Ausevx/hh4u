@@ -67,6 +67,10 @@ export class MockLLMService implements ILLMService {
     return `Guidance for query: "${prompt}". Please consult Dr. Anjali Jariwala for detailed homeopathic follow-up.`;
   }
 
+  public async generateConversationalResponse(userMessage: string): Promise<string> {
+    return `Hey there! I'm your health assistant. You said "${userMessage}" — could you tell me more about your symptoms or health concerns so I can help?`;
+  }
+
   public async generatePersonalizedAnswer(params: PersonalizeAnswerParams): Promise<string> {
     const { originalQuery, templateText, userLanguage, additionalContext } = params;
     

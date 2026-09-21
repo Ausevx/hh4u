@@ -27,6 +27,13 @@ export interface ILLMService {
   generateAnswer(prompt: string, context?: Record<string, any>): Promise<string>;
 
   /**
+   * Generates a friendly, conversational response for greetings,
+   * non-medical queries, or low-confidence matches. Asks the user
+   * to describe their symptoms so the chatbot can help.
+   */
+  generateConversationalResponse(userMessage: string): Promise<string>;
+
+  /**
    * Synthesizes a personalized homeopathic answer combining the matched answer template,
    * the user's original query context, and diagnostic questionnaire responses.
    */
