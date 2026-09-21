@@ -297,8 +297,8 @@ export class ChatbotService {
     try {
       fallbackText = await ai.llm.generateConversationalResponse(originalQueryText);
     } catch (e) {
-      console.error("Conversational LLM failed, using static fallback", e);
-      fallbackText = "Hey there! 👋 I'm your homeopathic health assistant at Healing Hands4U. Could you please describe your symptoms or health concerns? I'd love to help!";
+      console.error("Conversational LLM failed, using minimal fallback", e);
+      fallbackText = "I am currently unable to process your request. Please try again later.";
     }
     
     return {

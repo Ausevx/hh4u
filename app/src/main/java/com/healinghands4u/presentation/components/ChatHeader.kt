@@ -20,6 +20,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
@@ -116,6 +118,31 @@ fun ChatHeader(
                     )
                 }
             }
+            
+            var showContactDialog by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+            androidx.compose.material3.TextButton(onClick = { showContactDialog = true }) {
+                Text(text = "Contact Us", color = tokens.accent, style = MaterialTheme.typography.labelMedium)
+            }
+            if (showContactDialog) {
+                androidx.compose.ui.window.Dialog(onDismissRequest = { showContactDialog = false }) {
+                    Surface(
+                        shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
+                        color = tokens.surface,
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        Column {
+                            DoctorContactFooter()
+                            androidx.compose.material3.TextButton(
+                                onClick = { showContactDialog = false },
+                                modifier = Modifier.align(Alignment.End).padding(8.dp)
+                            ) {
+                                Text("Close", color = tokens.accent)
+                            }
+                        }
+                    }
+                }
+            }
+            ProfileMenu()
         }
     }
 }

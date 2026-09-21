@@ -117,9 +117,11 @@ The user just sent: "${userMessage}"
 This message doesn't appear to be a specific health question. Respond naturally and conversationally:
 - If it's a greeting (hi, hello, yo, hey, etc.), greet them warmly back.
 - If it's casual chat, be friendly and steer the conversation toward health.
-- Always end by gently asking them to describe their symptoms or health concerns so you can help.
+- If the user is being malicious, toxic, or clearly does not want any answers, politely decline to engage further or offer irrelevant responses.
+- If they genuinely have a query but it is not health-related, politely explain that you can only assist with health and medical questions.
+- If it's a greeting or casual chat, always end by gently asking them to describe their symptoms or health concerns so you can help.
 - Keep your response short (2-3 sentences max), warm, and human.
-- Do NOT give any medical advice or mention remedies. Just be friendly and ask what's bothering them.
+- Do NOT give any medical advice or mention remedies here. Just be friendly and guide them.
 
 Respond directly (no JSON, no formatting):`;
 
@@ -127,10 +129,10 @@ Respond directly (no JSON, no formatting):`;
       const response = await this.generateContentWithFallback({
         contents: prompt,
       });
-      return response.text || "Hey there! 👋 I'm your homeopathic health assistant. How can I help you today? Please describe any symptoms or health concerns you're experiencing.";
+      return response.text || "I am currently unable to process your request.";
     } catch (err: any) {
       console.warn(`[GeminiLLMService] Conversational response failed: ${err?.message}`);
-      return "Hey there! 👋 I'm your homeopathic health assistant at Healing Hands4U. Please tell me about your symptoms or health concerns and I'll do my best to help!";
+      throw err;
     }
   }
 

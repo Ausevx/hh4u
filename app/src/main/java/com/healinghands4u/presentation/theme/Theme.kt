@@ -84,7 +84,7 @@ val MaterialTheme.trustedTealColors: TrustedTealColors
 
 @Composable
 fun HealingHandsTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    darkTheme: Boolean = ThemeState.isDarkTheme.value ?: isSystemInDarkTheme(),
     dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {

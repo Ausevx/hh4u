@@ -33,7 +33,7 @@ fun VideoLink(
     val tokens = MaterialTheme.trustedTealColors
 
     Surface(
-        shape = RoundedCornerShape(50),
+        shape = RoundedCornerShape(8.dp),
         color = tokens.surfaceTint.copy(alpha = 0.5f),
         border = BorderStroke(1.5.dp, tokens.accent),
         modifier = modifier

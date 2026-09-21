@@ -44,7 +44,7 @@ fun TagChip(
     }
 
     Surface(
-        shape = RoundedCornerShape(50),
+        shape = RoundedCornerShape(8.dp),
         color = containerColor,
         border = BorderStroke(1.dp, borderColor),
         modifier = chipModifier

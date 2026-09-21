@@ -1,6 +1,7 @@
 package com.healinghands4u.presentation.chatbot.query
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -39,7 +40,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.healinghands4u.presentation.common.DoctorContactFooter
 import com.healinghands4u.presentation.components.ChatHeader
 import com.healinghands4u.presentation.components.QuickReplyChip
 import com.healinghands4u.presentation.theme.AppIcons
@@ -77,6 +77,108 @@ fun ChatbotQueryScreen(
                 subtitle = "Replies in seconds",
                 onBackClick = onBackClick
             )
+        },
+        bottomBar = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+            ) {
+                // Dual Intent Wireframe Button (when not currently in consultation mode)
+                if (!isConsultation) {
+                    OutlinedButton(
+                        onClick = { onSendQuery(queryText, true) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp),
+                        enabled = queryText.isNotBlank(),
+                        shape = RoundedCornerShape(12.dp),
+                        border = BorderStroke(1.dp, if (queryText.isNotBlank()) tokens.accent else tokens.line),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = tokens.accent,
+                            disabledContentColor = tokens.inkDim
+                        )
+                    ) {
+                        Text(
+                            text = "I would like to Cooperate for online consultation",
+                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold)
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(10.dp))
+                }
+
+                // Consultation Mode Toggle
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Checkbox(
+                        checked = isConsultation,
+                        onCheckedChange = { isConsultation = it },
+                        colors = CheckboxDefaults.colors(
+                            checkedColor = tokens.accent,
+                            checkmarkColor = tokens.accentInk
+                        )
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "I would like a guided online consultation",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = tokens.ink
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    OutlinedTextField(
+                        value = queryText,
+                        onValueChange = { queryText = it },
+                        placeholder = { Text("Type your query...", color = tokens.inkDim) },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = tokens.accent,
+                            unfocusedBorderColor = tokens.line,
+                            focusedTextColor = tokens.ink,
+                            unfocusedTextColor = tokens.ink
+                        ),
+                        maxLines = 3,
+                        trailingIcon = {
+                            IconButton(onClick = { /* Start Audio Capture */ }) {
+                                Icon(
+                                    imageVector = AppIcons.Mic,
+                                    contentDescription = "Speak",
+                                    tint = tokens.accent,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
+                        }
+                    )
+                    
+                    Spacer(modifier = Modifier.width(8.dp))
+                    
+                    IconButton(
+                        onClick = { onSendQuery(queryText, isConsultation) },
+                        enabled = queryText.isNotBlank(),
+                        modifier = Modifier
+                            .background(
+                                if (queryText.isNotBlank()) tokens.accent else tokens.line,
+                                RoundedCornerShape(12.dp)
+                            )
+                            .size(50.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Send,
+                            contentDescription = "Send",
+                            tint = if (queryText.isNotBlank()) tokens.accentInk else tokens.inkDim
+                        )
+                    }
+                }
+            }
         }
     ) { paddingValues ->
         Column(
@@ -130,118 +232,6 @@ fun ChatbotQueryScreen(
                     )
                 }
             }
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            // Text Input Field
-            OutlinedTextField(
-                value = queryText,
-                onValueChange = { queryText = it },
-                label = { Text("Type your query or speak") },
-                placeholder = { Text("Describe symptoms, pain, duration...", color = tokens.inkDim) },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(14.dp),
-                trailingIcon = {
-                    IconButton(onClick = { /* Start Audio Capture */ }) {
-                        Icon(
-                            imageVector = AppIcons.Mic,
-                            contentDescription = "Speak",
-                            tint = tokens.accent,
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
-                },
-                colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = tokens.accent,
-                    unfocusedBorderColor = tokens.line,
-                    focusedTextColor = tokens.ink,
-                    unfocusedTextColor = tokens.ink
-                ),
-                minLines = 3,
-                maxLines = 5
-            )
-
-            Spacer(modifier = Modifier.height(14.dp))
-
-            // Consultation Mode Toggle
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Checkbox(
-                    checked = isConsultation,
-                    onCheckedChange = { isConsultation = it },
-                    colors = CheckboxDefaults.colors(
-                        checkedColor = tokens.accent,
-                        checkmarkColor = tokens.accentInk
-                    )
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                    text = "I would like a guided online consultation",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = tokens.ink
-                )
-            }
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            // Primary Submit Action
-            Button(
-                onClick = { onSendQuery(queryText, isConsultation) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp),
-                enabled = queryText.isNotBlank(),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = tokens.accent,
-                    contentColor = tokens.accentInk,
-                    disabledContainerColor = tokens.line,
-                    disabledContentColor = tokens.inkDim
-                )
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Send,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = if (isConsultation) "Start Consultation" else "Get Answer Now",
-                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
-                )
-            }
-
-            // Dual Intent Wireframe Button (when not currently in consultation mode)
-            if (!isConsultation) {
-                Spacer(modifier = Modifier.height(10.dp))
-                OutlinedButton(
-                    onClick = { onSendQuery(queryText, true) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(48.dp),
-                    enabled = queryText.isNotBlank(),
-                    shape = RoundedCornerShape(12.dp),
-                    border = BorderStroke(1.dp, if (queryText.isNotBlank()) tokens.accent else tokens.line),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = tokens.accent,
-                        disabledContentColor = tokens.inkDim
-                    )
-                ) {
-                    Text(
-                        text = "I would like to Cooperate for online consultation",
-                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold)
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(28.dp))
-
-            // Embedded Doctor Contact Footer
-            DoctorContactFooter()
-
-            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }

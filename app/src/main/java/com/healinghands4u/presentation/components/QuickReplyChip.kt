@@ -31,7 +31,7 @@ fun QuickReplyChip(
     val tokens = MaterialTheme.trustedTealColors
 
     Surface(
-        shape = RoundedCornerShape(50),
+        shape = RoundedCornerShape(8.dp),
         color = tokens.surfaceTint,
         border = BorderStroke(1.dp, tokens.accent.copy(alpha = 0.35f)),
         modifier = modifier.clickable(onClick = onClick)

@@ -20,7 +20,7 @@ import com.healinghands4u.presentation.planner.PlannerScreen
 fun AppNavHost(
     modifier: Modifier = Modifier,
     navController: NavHostController = rememberNavController(),
-    startDestination: String = Screen.ChatbotQuery.route
+    startDestination: String = Screen.Login.route
 ) {
     NavHost(
         navController = navController,
