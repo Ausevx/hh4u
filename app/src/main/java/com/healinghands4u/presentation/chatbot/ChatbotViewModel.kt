@@ -17,6 +17,7 @@ sealed interface ChatbotUiState {
     object Loading : ChatbotUiState
     data class Success(
         val answerText: String,
+        val remedyName: String? = null,
         val dosage: String? = null,
         val homeRemedy: String? = null,
         val safetyDisclaimer: String? = null,
@@ -48,6 +49,7 @@ class ChatbotViewModel @Inject constructor(
                     val displayText = ans?.answerText?.takeIf { it.isNotBlank() } ?: response.message?.takeIf { it.isNotBlank() } ?: "No remedy found"
                     _state.value = ChatbotUiState.Success(
                         answerText = displayText,
+                        remedyName = ans?.remedyName,
                         dosage = ans?.dosageInstructions,
                         homeRemedy = ans?.homeRemedyText,
                         safetyDisclaimer = ans?.safetyDisclaimerText,

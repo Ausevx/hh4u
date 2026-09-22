@@ -41,6 +41,7 @@ export interface ChatbotQueryResponse {
   answer?: {
     id: string;
     answerText: string;
+    remedyName?: string;
     dosageInstructions?: string;
     homeRemedyText?: string;
     safetyDisclaimerText?: string;
@@ -235,6 +236,7 @@ export class ChatbotService {
           answer: {
             id: answerDoc?._id ? answerDoc._id.toString() : new mongoose.Types.ObjectId().toString(),
             answerText: finalAnswerText,
+            remedyName: answerDoc?.remedyText,
             dosageInstructions: answerDoc?.dosageInstructions,
             homeRemedyText: answerDoc?.homeRemedyText,
             safetyDisclaimerText: answerDoc?.safetyDisclaimerText,

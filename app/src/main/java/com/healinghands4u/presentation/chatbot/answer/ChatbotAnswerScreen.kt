@@ -153,6 +153,7 @@ fun ChatbotAnswerScreen(
                 ChatbotAnswerContent(
                     headerMessage = state.answerText,
                     answerText = state.answerText,
+                    remedyName = state.remedyName,
                     dosage = state.dosage,
                     homeRemedy = state.homeRemedy,
                     safetyDisclaimer = state.safetyDisclaimer,
@@ -170,6 +171,7 @@ fun ChatbotAnswerScreen(
 @Composable
 fun ChatbotAnswerScreen(
     answerText: String,
+    remedyName: String? = null,
     dosage: String? = null,
     homeRemedy: String? = null,
     safetyDisclaimer: String? = null,
@@ -191,6 +193,7 @@ fun ChatbotAnswerScreen(
         ChatbotAnswerContent(
             headerMessage = null,
             answerText = answerText,
+            remedyName = remedyName,
             dosage = dosage,
             homeRemedy = homeRemedy,
             safetyDisclaimer = safetyDisclaimer,
@@ -204,6 +207,7 @@ fun ChatbotAnswerScreen(
 fun ChatbotAnswerContent(
     headerMessage: String? = null,
     answerText: String,
+    remedyName: String? = null,
     dosage: String?,
     homeRemedy: String?,
     safetyDisclaimer: String?,
@@ -234,7 +238,7 @@ fun ChatbotAnswerContent(
         if (hasPrescription) {
             // RxCard: Visual Centerpiece
             RxCard(
-                remedyName = answerText,
+                remedyName = remedyName ?: "Personalized Remedy",
                 dosage = dosage ?: "As advised by your homeopathic physician",
                 homeRemedy = homeRemedy,
                 safetyDisclaimer = safetyDisclaimer ?: "If disease does not cure within 2 days then consult doctor right now"
