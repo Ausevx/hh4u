@@ -1,6 +1,7 @@
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
+    id("org.jetbrains.kotlin.plugin.compose")
     id("kotlin-kapt")
     id("com.google.dagger.hilt.android")
 }
@@ -38,9 +39,6 @@ android {
     buildFeatures {
         compose = true
     }
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.4"
-    }
     testOptions {
         unitTests {
             isIncludeAndroidResources = true
@@ -57,6 +55,7 @@ dependencies {
     implementation("androidx.compose.ui:ui-graphics")
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
+    implementation("androidx.compose.ui:ui-text-google-fonts:1.6.8")
     implementation("androidx.navigation:navigation-compose:2.7.5")
     implementation("androidx.compose.material:material-icons-extended")
     implementation("androidx.compose.ui:ui-text-google-fonts")
@@ -80,6 +79,11 @@ dependencies {
     // Firebase Auth
     implementation(platform("com.google.firebase:firebase-bom:32.7.0"))
     implementation("com.google.firebase:firebase-auth")
+
+    // WorkManager for background sync
+    implementation("androidx.work:work-runtime-ktx:2.9.0")
+    implementation("androidx.hilt:hilt-work:1.1.0")
+    kapt("androidx.hilt:hilt-compiler:1.1.0")
 
     
     debugImplementation("androidx.compose.ui:ui-test-manifest")

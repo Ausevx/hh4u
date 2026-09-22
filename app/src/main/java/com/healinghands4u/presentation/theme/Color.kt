@@ -9,29 +9,29 @@ import androidx.compose.ui.graphics.Color
 // Pure black & white. No accents. No teal.
 // =========================================================================
 
-// --- Light Mode: White background, black text ---
-val LightBg = Color(0xFFFFFFFF)
-val LightSurface = Color(0xFFF5F5F5)
-val LightSurfaceTint = Color(0xFFEEEEEE)
-val LightInk = Color(0xFF000000)
-val LightInkDim = Color(0xFF666666)
-val LightAccent = Color(0xFF000000)
+// --- Light Mode: Warm background, Deep Green accents ---
+val LightBg = Color(0xFFFFF9F0)
+val LightSurface = Color(0xFFFFF9F0)
+val LightSurfaceTint = Color(0xFF2F5D50) // primary-container
+val LightInk = Color(0xFF1D1B16)
+val LightInkDim = Color(0xFF404945)
+val LightAccent = Color(0xFF154539) // primary
 val LightAccentInk = Color(0xFFFFFFFF)
-val LightLine = Color(0x1A000000)       // 10% black
-val LightWarnBg = Color(0xFFF5F5F5)
-val LightWarnInk = Color(0xFF333333)
+val LightLine = Color(0xFFC0C8C4) // outline-variant
+val LightWarnBg = Color(0xFFFFDAD6)
+val LightWarnInk = Color(0xFFBA1A1A)
 
-// --- Dark Mode: Black background, white text ---
-val DarkBg = Color(0xFF000000)
-val DarkSurface = Color(0xFF111111)
-val DarkSurfaceTint = Color(0xFF1A1A1A)
-val DarkInk = Color(0xFFFFFFFF)
-val DarkInkDim = Color(0xFF999999)
-val DarkAccent = Color(0xFFFFFFFF)
-val DarkAccentInk = Color(0xFF000000)
-val DarkLine = Color(0x1AFFFFFF)         // 10% white
-val DarkWarnBg = Color(0xFF1A1A1A)
-val DarkWarnInk = Color(0xFFCCCCCC)
+// --- Dark Mode: Inverse surface, lighter green accents ---
+val DarkBg = Color(0xFF32302A)
+val DarkSurface = Color(0xFF32302A)
+val DarkSurfaceTint = Color(0xFF204F42)
+val DarkInk = Color(0xFFF6F0E7)
+val DarkInkDim = Color(0xFFC0C8C4)
+val DarkAccent = Color(0xFFA0D1C0)
+val DarkAccentInk = Color(0xFF002019)
+val DarkLine = Color(0xFF717975)
+val DarkWarnBg = Color(0xFF93000A)
+val DarkWarnInk = Color(0xFFFFDAD6)
 
 // --- Contact action colors (kept for WhatsApp/Phone buttons) ---
 val WhatsAppGreen = Color(0xFF25D366)
@@ -96,10 +96,10 @@ val TealOnSecondary = LightAccentInk
 val TealSecondaryContainer = LightSurfaceTint
 val TealOnSecondaryContainer = LightInk
 
-val ClinicalTertiary = Color(0xFF555555)
+val ClinicalTertiary = Color(0xFF682C17)
 val ClinicalOnTertiary = Color(0xFFFFFFFF)
-val ClinicalTertiaryContainer = Color(0xFFEEEEEE)
-val ClinicalOnTertiaryContainer = Color(0xFF000000)
+val ClinicalTertiaryContainer = Color(0xFF85422B)
+val ClinicalOnTertiaryContainer = Color(0xFFFFBAA3)
 
 val ClinicalBackground = LightBg
 val ClinicalOnBackground = LightInk
@@ -119,10 +119,10 @@ val TealOnSecondaryDark = DarkAccentInk
 val TealSecondaryContainerDark = DarkSurfaceTint
 val TealOnSecondaryContainerDark = DarkInk
 
-val ClinicalTertiaryDark = Color(0xFFAAAAAA)
-val ClinicalOnTertiaryDark = Color(0xFF111111)
-val ClinicalTertiaryContainerDark = Color(0xFF333333)
-val ClinicalOnTertiaryContainerDark = Color(0xFFEEEEEE)
+val ClinicalTertiaryDark = Color(0xFFFFB59D)
+val ClinicalOnTertiaryDark = Color(0xFF390C00)
+val ClinicalTertiaryContainerDark = Color(0xFF73341E)
+val ClinicalOnTertiaryContainerDark = Color(0xFFFFBAA3)
 
 val ClinicalBackgroundDark = DarkBg
 val ClinicalOnBackgroundDark = DarkInk

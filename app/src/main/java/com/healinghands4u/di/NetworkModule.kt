@@ -1,5 +1,6 @@
 package com.healinghands4u.di
 
+import com.healinghands4u.data.remote.KnowledgeBaseSyncApi
 import com.healinghands4u.data.remote.SyncService
 import dagger.Module
 import dagger.Provides
@@ -45,5 +46,11 @@ object NetworkModule {
     @Singleton
     fun provideChatbotApi(retrofit: Retrofit): com.healinghands4u.data.remote.ChatbotApi {
         return retrofit.create(com.healinghands4u.data.remote.ChatbotApi::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideKnowledgeBaseSyncApi(retrofit: Retrofit): KnowledgeBaseSyncApi {
+        return retrofit.create(KnowledgeBaseSyncApi::class.java)
     }
 }

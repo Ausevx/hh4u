@@ -7,6 +7,7 @@ import helmet from 'helmet';
 import authRoutes from './routes/authRoutes';
 import chatbotRoutes from './routes/chatbotRoutes';
 import adminRoutes from './routes/adminRoutes';
+import syncRoutes from './routes/syncRoutes';
 
 const app = express();
 
@@ -37,6 +38,7 @@ app.use('/api/auth', authRoutes);
 app.use('/chatbot', chatbotRoutes);
 app.use('/api/chatbot', chatbotRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/sync', syncRoutes);
 
 // Global fallback error handler
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {

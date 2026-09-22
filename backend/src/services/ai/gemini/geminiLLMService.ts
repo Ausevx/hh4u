@@ -157,7 +157,8 @@ Only output valid JSON.`;
     if (context && Object.keys(context).length > 0) {
       fullPrompt += `\nClinical Knowledge Base Guidance:\n${JSON.stringify(context, null, 2)}\n`;
     }
-    fullPrompt += `\nProvide a clear, reassuring, and structured homeopathic recommendation incorporating the above clinical guidance. Include dosage and safety instructions where appropriate.`;
+    const targetLanguage = context?.targetLanguage ? context.targetLanguage : 'English';
+    fullPrompt += `\nProvide a clear, reassuring, and structured homeopathic recommendation incorporating the above clinical guidance. Include dosage and safety instructions where appropriate. IMPORTANT: You MUST generate your response in the following language: ${targetLanguage}.`;
 
     try {
       const response = await this.generateContentWithFallback({
@@ -174,7 +175,7 @@ Only output valid JSON.`;
       return advice;
     }
   }
-  async generateConversationalResponse(userMessage: string): Promise<string> {
+  async generateConversationalResponse(userMessage: string, targetLanguage: string = 'English'): Promise<string> {
     const prompt = `You are a warm, friendly homeopathic health assistant chatbot for Healing Hands4U clinic (Dr. Anjali Jariwala).
 
 The user just sent: "${userMessage}"
@@ -187,6 +188,8 @@ This message doesn't appear to be a specific health question. Respond naturally 
 - If it's a greeting or casual chat, always end by gently asking them to describe their symptoms or health concerns so you can help.
 - Keep your response short (2-3 sentences max), warm, and human.
 - Do NOT give any medical advice or mention remedies here. Just be friendly and guide them.
+
+IMPORTANT: You MUST write your response in the following language: ${targetLanguage}.
 
 Respond directly (no JSON, no formatting):`;
 

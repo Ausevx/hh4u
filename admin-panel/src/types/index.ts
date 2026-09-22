@@ -119,3 +119,58 @@ export interface ApiErrorResponse {
   message: string;
   details?: string[];
 }
+
+// ============================================================================
+// User Management Types
+// ============================================================================
+
+export interface AppUser {
+  id: string;
+  email?: string | null;
+  displayName?: string | null;
+  authProvider: 'email_otp' | 'google' | 'guest';
+  createdAt: string;
+  lastLoginAt: string;
+  queryCount?: number;
+}
+
+export interface UserSession {
+  id: string;
+  queryText: string;
+  intent: string;
+  matchConfident: boolean;
+  createdAt: string;
+}
+
+export interface UserDetail extends AppUser {
+  avatarUrl?: string | null;
+  recentSessions: UserSession[];
+}
+
+// ============================================================================
+// Analytics Types
+// ============================================================================
+
+export interface SearchesPerDay {
+  date: string;
+  count: number;
+}
+
+export interface TopQuestion {
+  questionText: string;
+  count: number;
+}
+
+export interface UsersByProvider {
+  provider: string;
+  count: number;
+}
+
+export interface AnalyticsSummary {
+  totalUsers: number;
+  totalSearches: number;
+  searchesPerDay: SearchesPerDay[];
+  topQuestions: TopQuestion[];
+  usersByProvider: UsersByProvider[];
+}
+

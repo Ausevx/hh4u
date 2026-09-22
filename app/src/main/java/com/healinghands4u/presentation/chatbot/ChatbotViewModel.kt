@@ -28,16 +28,29 @@ sealed interface ChatbotUiState {
 
 @HiltViewModel
 class ChatbotViewModel @Inject constructor(
-    private val chatbotApi: ChatbotApi
+    private val chatbotApi: ChatbotApi,
+    private val offlineSearchRepository: com.healinghands4u.data.repository.OfflineSearchRepository
 ) : ViewModel() {
     
     private val _state = MutableStateFlow<ChatbotUiState>(ChatbotUiState.Idle)
     val state: StateFlow<ChatbotUiState> = _state
 
+    init {
+        // Ensure local KB is seeded if empty
+        viewModelScope.launch {
+            offlineSearchRepository.getLocalKbCount()
+        }
+    }
+
     fun querySymptoms(symptoms: String) {
         _state.value = ChatbotUiState.Loading
         viewModelScope.launch {
             try {
+                // Determine if we should even try network
+                if (!offlineSearchRepository.isOnline()) {
+                    throw java.net.UnknownHostException("No internet connection")
+                }
+                
                 val response = chatbotApi.queryChatbot(
                     ChatbotQueryRequest(
                         queryText = symptoms,
@@ -55,11 +68,33 @@ class ChatbotViewModel @Inject constructor(
                         safetyDisclaimer = ans?.safetyDisclaimerText,
                         videoUrl = ans?.videoUrl
                     )
+                    // Record click
+                    offlineSearchRepository.recordSearchEvent(symptoms, null, ans?.id)
                 } else {
                     _state.value = ChatbotUiState.Error("Failed: ${response.message ?: "Unknown error"}")
                 }
             } catch (e: Exception) {
-                _state.value = ChatbotUiState.Error("Error: ${e.message}")
+                // Fallback to offline FTS search
+                try {
+                    val localMatches = offlineSearchRepository.searchOffline(symptoms)
+                    if (localMatches.isNotEmpty()) {
+                        val match = localMatches.first()
+                        _state.value = ChatbotUiState.Success(
+                            answerText = match.answerText ?: match.reasonText ?: "No detail provided",
+                            remedyName = match.remedyText,
+                            dosage = match.dosageInstructions,
+                            homeRemedy = match.homeRemedyText,
+                            safetyDisclaimer = match.safetyDisclaimerText,
+                            videoUrl = match.videoUrl
+                        )
+                        offlineSearchRepository.recordSearchEvent(symptoms, null, match.id)
+                    } else {
+                        _state.value = ChatbotUiState.Error("You are offline and no local remedies were found for your query.")
+                        offlineSearchRepository.recordSearchEvent(symptoms, null, null)
+                    }
+                } catch (offlineErr: Exception) {
+                    _state.value = ChatbotUiState.Error("Error: ${e.message} (Offline fallback also failed)")
+                }
             }
         }
     }

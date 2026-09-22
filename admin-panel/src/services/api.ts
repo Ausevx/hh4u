@@ -221,6 +221,34 @@ export const api = {
       });
     },
   },
+
+  users: {
+    list: async (params: {
+      search?: string;
+      page?: number;
+      limit?: number;
+      authProvider?: string;
+    } = {}): Promise<{ success: boolean; users: import('../types').AppUser[]; total: number; page: number; totalPages: number }> => {
+      const q = new URLSearchParams();
+      if (params.search) q.set('search', params.search);
+      if (params.page) q.set('page', params.page.toString());
+      if (params.limit) q.set('limit', params.limit.toString());
+      if (params.authProvider) q.set('authProvider', params.authProvider);
+
+      const queryStr = q.toString() ? `?${q.toString()}` : '';
+      return request(`/users${queryStr}`);
+    },
+
+    getById: async (id: string): Promise<{ success: boolean; user: import('../types').UserDetail }> => {
+      return request(`/users/${id}`);
+    },
+  },
+
+  analytics: {
+    getSummary: async (): Promise<{ success: boolean; analytics: import('../types').AnalyticsSummary }> => {
+      return request('/analytics/summary');
+    },
+  },
 };
 
 export default api;

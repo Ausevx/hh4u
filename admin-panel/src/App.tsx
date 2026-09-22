@@ -4,6 +4,8 @@ import { AuthProvider } from './contexts/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
+import UsersPage from './pages/UsersPage';
+import AnalyticsPage from './pages/AnalyticsPage';
 
 export const App: React.FC = () => {
   return (
@@ -13,6 +15,8 @@ export const App: React.FC = () => {
           <Route path="/login" element={<LoginPage />} />
           <Route element={<ProtectedRoute />}>
             <Route path="/" element={<DashboardPage />} />
+            <Route path="/users" element={<UsersPage />} />
+            <Route path="/analytics" element={<AnalyticsPage />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

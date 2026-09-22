@@ -114,7 +114,7 @@ export class ChatbotService {
     
     if (userIntent === 'GREETING' || userIntent === 'CHITCHAT') {
       // Fast path: skip vector search entirely for casual chat
-      const fallbackText = await ai.llm.generateConversationalResponse(originalQueryText);
+      const fallbackText = await ai.llm.generateConversationalResponse(originalQueryText, detectedLang || 'English');
       const session = new ChatbotSession({
         userId: parsedUserId,
         originalQueryText,
@@ -218,9 +218,10 @@ export class ChatbotService {
             dosageInstructions: answerDoc.dosageInstructions,
             homeRemedyText: answerDoc.homeRemedyText,
             safetyDisclaimerText: answerDoc.safetyDisclaimerText,
+            targetLanguage: originalLanguage
           });
         } else {
-          finalAnswerText = await ai.llm.generateAnswer(translatedQueryText);
+          finalAnswerText = await ai.llm.generateAnswer(translatedQueryText, { targetLanguage: originalLanguage });
         }
 
         return {
@@ -324,7 +325,7 @@ export class ChatbotService {
     // by greeting the user and asking them to describe their symptoms.
     let fallbackText: string;
     try {
-      fallbackText = await ai.llm.generateConversationalResponse(originalQueryText);
+      fallbackText = await ai.llm.generateConversationalResponse(originalQueryText, originalLanguage);
     } catch (e) {
       console.error("Conversational LLM failed, using minimal fallback", e);
       fallbackText = "I am currently unable to process your request. Please try again later.";

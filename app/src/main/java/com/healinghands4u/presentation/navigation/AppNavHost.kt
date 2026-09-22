@@ -9,9 +9,10 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.navigation.NavType
 import com.healinghands4u.presentation.auth.LoginScreen
+import com.healinghands4u.presentation.assistant.WellnessAssistantScreen
 import com.healinghands4u.presentation.chatbot.answer.ChatbotAnswerScreen
 import com.healinghands4u.presentation.chatbot.consultation.ConsultationScreen
-import com.healinghands4u.presentation.chatbot.query.ChatbotQueryScreen
+import com.healinghands4u.presentation.clinic.ClinicPlaceholderScreen
 import com.healinghands4u.presentation.diseaselist.DiseaseListScreen
 import com.healinghands4u.presentation.home.HomeScreen
 import com.healinghands4u.presentation.planner.PlannerScreen
@@ -20,7 +21,7 @@ import com.healinghands4u.presentation.planner.PlannerScreen
 fun AppNavHost(
     modifier: Modifier = Modifier,
     navController: NavHostController = rememberNavController(),
-    startDestination: String = Screen.Login.route
+    startDestination: String = Screen.ChatbotQuery.route
 ) {
     NavHost(
         navController = navController,
@@ -84,10 +85,16 @@ fun AppNavHost(
             })
         ) { backStackEntry ->
             val initialQuery = backStackEntry.arguments?.getString("initialQuery") ?: ""
-            ChatbotQueryScreen(
+            WellnessAssistantScreen(
                 initialQuery = initialQuery,
-                onBackClick = {
-                    navController.popBackStack()
+                onNavigateToClinic = {
+                    navController.navigate(Screen.ClinicPlaceholder.route)
+                },
+                onNavigateToHistory = {
+                    // Placeholder for now
+                },
+                onNavigateToProfile = {
+                    navController.navigate(Screen.Login.route)
                 },
                 onSendQuery = { query, isConsultation ->
                     val encoded = java.net.URLEncoder.encode(query, "UTF-8")
@@ -98,6 +105,10 @@ fun AppNavHost(
                     }
                 }
             )
+        }
+        
+        composable(Screen.ClinicPlaceholder.route) {
+            ClinicPlaceholderScreen()
         }
 
         composable(Screen.Consultation.route) {

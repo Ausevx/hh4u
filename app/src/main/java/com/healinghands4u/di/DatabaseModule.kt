@@ -4,6 +4,8 @@ import android.content.Context
 import androidx.room.Room
 import com.healinghands4u.data.local.AppDatabase
 import com.healinghands4u.data.local.DiseaseDao
+import com.healinghands4u.data.local.KnowledgeBaseDao
+import com.healinghands4u.data.local.SearchEventDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -22,11 +24,21 @@ object DatabaseModule {
             context,
             AppDatabase::class.java,
             "healing_hands_db"
-        ).build()
+        ).fallbackToDestructiveMigration().build()
     }
 
     @Provides
     fun provideDiseaseDao(database: AppDatabase): DiseaseDao {
         return database.diseaseDao()
+    }
+
+    @Provides
+    fun provideKnowledgeBaseDao(database: AppDatabase): KnowledgeBaseDao {
+        return database.knowledgeBaseDao()
+    }
+
+    @Provides
+    fun provideSearchEventDao(database: AppDatabase): SearchEventDao {
+        return database.searchEventDao()
     }
 }

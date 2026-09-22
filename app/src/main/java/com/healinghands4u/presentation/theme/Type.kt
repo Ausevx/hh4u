@@ -23,122 +23,116 @@ val fontProvider = GoogleFont.Provider(
     certificates = R.array.com_google_android_gms_fonts_certs
 )
 
-val SoraFont = GoogleFont("Sora")
-val IBMPlexSansFont = GoogleFont("IBM Plex Sans")
+val PlusJakartaSansFont = GoogleFont("Plus Jakarta Sans")
 
-val SoraFontFamily: FontFamily = if (isRobolectric) {
+val PlusJakartaSansFontFamily: FontFamily = if (isRobolectric) {
     FontFamily.SansSerif
 } else {
     try {
         FontFamily(
-            Font(googleFont = SoraFont, fontProvider = fontProvider, weight = FontWeight.Bold),
-            Font(googleFont = SoraFont, fontProvider = fontProvider, weight = FontWeight.SemiBold),
-            Font(googleFont = SoraFont, fontProvider = fontProvider, weight = FontWeight.Medium),
-            Font(googleFont = SoraFont, fontProvider = fontProvider, weight = FontWeight.Normal)
+            Font(googleFont = PlusJakartaSansFont, fontProvider = fontProvider, weight = FontWeight.Bold),
+            Font(googleFont = PlusJakartaSansFont, fontProvider = fontProvider, weight = FontWeight.SemiBold),
+            Font(googleFont = PlusJakartaSansFont, fontProvider = fontProvider, weight = FontWeight.Medium),
+            Font(googleFont = PlusJakartaSansFont, fontProvider = fontProvider, weight = FontWeight.Normal)
         )
     } catch (e: Throwable) {
         FontFamily.SansSerif
     }
 }
 
-val IBMPlexSansFontFamily: FontFamily = if (isRobolectric) {
-    FontFamily.SansSerif
-} else {
-    try {
-        FontFamily(
-            Font(googleFont = IBMPlexSansFont, fontProvider = fontProvider, weight = FontWeight.Bold),
-            Font(googleFont = IBMPlexSansFont, fontProvider = fontProvider, weight = FontWeight.SemiBold),
-            Font(googleFont = IBMPlexSansFont, fontProvider = fontProvider, weight = FontWeight.Medium),
-            Font(googleFont = IBMPlexSansFont, fontProvider = fontProvider, weight = FontWeight.Normal)
-        )
-    } catch (e: Throwable) {
-        FontFamily.SansSerif
-    }
-}
+val SoraFontFamily = PlusJakartaSansFontFamily
+val IBMPlexSansFontFamily = PlusJakartaSansFontFamily
 
 val Typography = Typography(
-    headlineLarge = TextStyle(
-        fontFamily = SoraFontFamily,
+    displayLarge = TextStyle(
+        fontFamily = PlusJakartaSansFontFamily,
         fontWeight = FontWeight.Bold,
-        fontSize = 32.sp,
-        lineHeight = 40.sp,
+        fontSize = 36.sp,
+        lineHeight = 44.sp,
+        letterSpacing = (-0.02).em
+    ),
+    headlineLarge = TextStyle(
+        fontFamily = PlusJakartaSansFontFamily,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 26.sp,
+        lineHeight = 34.sp,
         letterSpacing = (-0.01).em
     ),
     headlineMedium = TextStyle(
-        fontFamily = SoraFontFamily,
-        fontWeight = FontWeight.Bold,
-        fontSize = 24.sp,
-        lineHeight = 32.sp,
-        letterSpacing = (-0.01).em
+        fontFamily = PlusJakartaSansFontFamily,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 22.sp,
+        lineHeight = 28.sp,
+        letterSpacing = 0.em
     ),
     headlineSmall = TextStyle(
-        fontFamily = SoraFontFamily,
+        fontFamily = PlusJakartaSansFontFamily,
         fontWeight = FontWeight.SemiBold,
-        fontSize = 20.sp,
-        lineHeight = 28.sp,
-        letterSpacing = (-0.01).em
+        fontSize = 18.sp,
+        lineHeight = 24.sp,
+        letterSpacing = 0.em
     ),
     titleLarge = TextStyle(
-        fontFamily = SoraFontFamily,
-        fontWeight = FontWeight.Bold,
+        fontFamily = PlusJakartaSansFontFamily,
+        fontWeight = FontWeight.SemiBold,
         fontSize = 20.sp,
         lineHeight = 26.sp,
-        letterSpacing = (-0.01).em
+        letterSpacing = 0.em
     ),
     titleMedium = TextStyle(
-        fontFamily = IBMPlexSansFontFamily,
+        fontFamily = PlusJakartaSansFontFamily,
         fontWeight = FontWeight.SemiBold,
         fontSize = 16.sp,
-        lineHeight = 24.sp,
-        letterSpacing = 0.15.sp
+        lineHeight = 22.sp,
+        letterSpacing = 0.em
     ),
     titleSmall = TextStyle(
-        fontFamily = IBMPlexSansFontFamily,
+        fontFamily = PlusJakartaSansFontFamily,
         fontWeight = FontWeight.SemiBold,
         fontSize = 14.sp,
         lineHeight = 20.sp,
         letterSpacing = 0.1.sp
     ),
     bodyLarge = TextStyle(
-        fontFamily = IBMPlexSansFontFamily,
+        fontFamily = PlusJakartaSansFontFamily,
         fontWeight = FontWeight.Normal,
         fontSize = 16.sp,
-        lineHeight = 24.sp,
-        letterSpacing = 0.5.sp
+        lineHeight = 26.sp,
+        letterSpacing = 0.em
     ),
     bodyMedium = TextStyle(
-        fontFamily = IBMPlexSansFontFamily,
+        fontFamily = PlusJakartaSansFontFamily,
         fontWeight = FontWeight.Normal,
         fontSize = 14.sp,
-        lineHeight = 20.sp,
-        letterSpacing = 0.25.sp
+        lineHeight = 22.sp,
+        letterSpacing = 0.em
     ),
     bodySmall = TextStyle(
-        fontFamily = IBMPlexSansFontFamily,
+        fontFamily = PlusJakartaSansFontFamily,
         fontWeight = FontWeight.Normal,
         fontSize = 12.sp,
-        lineHeight = 16.sp,
-        letterSpacing = 0.4.sp
+        lineHeight = 18.sp,
+        letterSpacing = 0.em
     ),
     labelLarge = TextStyle(
-        fontFamily = IBMPlexSansFontFamily,
+        fontFamily = PlusJakartaSansFontFamily,
         fontWeight = FontWeight.SemiBold,
         fontSize = 14.sp,
         lineHeight = 20.sp,
-        letterSpacing = 0.1.sp
+        letterSpacing = 0.01.em
     ),
     labelMedium = TextStyle(
-        fontFamily = IBMPlexSansFontFamily,
+        fontFamily = PlusJakartaSansFontFamily,
         fontWeight = FontWeight.Medium,
         fontSize = 12.sp,
         lineHeight = 16.sp,
-        letterSpacing = 0.5.sp
+        letterSpacing = 0.02.em
     ),
     labelSmall = TextStyle(
-        fontFamily = IBMPlexSansFontFamily,
+        fontFamily = PlusJakartaSansFontFamily,
         fontWeight = FontWeight.Medium,
         fontSize = 11.sp,
         lineHeight = 14.sp,
-        letterSpacing = 0.5.sp
+        letterSpacing = 0.03.em
     )
 )

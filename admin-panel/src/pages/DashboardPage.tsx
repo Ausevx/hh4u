@@ -223,6 +223,22 @@ export const DashboardPage: React.FC = () => {
               </div>
             </div>
 
+            <a
+              href="/users"
+              className="inline-flex items-center px-2 sm:px-3 py-1.5 border border-gray-200 dark:border-gray-800 rounded-lg text-xs font-semibold text-black dark:text-white bg-white dark:bg-black hover:bg-gray-100 dark:hover:bg-gray-900 transition-colors shadow-sm cursor-pointer"
+            >
+              <span className="hidden sm:inline">👥 Users</span>
+              <span className="sm:hidden">👥</span>
+            </a>
+
+            <a
+              href="/analytics"
+              className="inline-flex items-center px-2 sm:px-3 py-1.5 border border-gray-200 dark:border-gray-800 rounded-lg text-xs font-semibold text-black dark:text-white bg-white dark:bg-black hover:bg-gray-100 dark:hover:bg-gray-900 transition-colors shadow-sm cursor-pointer"
+            >
+              <span className="hidden sm:inline">📊 Analytics</span>
+              <span className="sm:hidden">📊</span>
+            </a>
+
             <button
               onClick={() => setIsBulkUploadOpen(true)}
               className="inline-flex items-center px-2 sm:px-3 py-1.5 border border-gray-200 dark:border-gray-800 rounded-lg text-xs font-semibold text-black dark:text-white bg-white dark:bg-black hover:bg-gray-100 dark:hover:bg-gray-900 transition-colors shadow-sm cursor-pointer"

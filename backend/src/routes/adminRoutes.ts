@@ -4,6 +4,7 @@ import uploadExcelMiddleware from '../middlewares/uploadMiddleware';
 import * as adminAuthController from '../controllers/adminAuthController';
 import * as adminKnowledgeBaseController from '../controllers/adminKnowledgeBaseController';
 import * as adminVectorController from '../controllers/adminVectorController';
+import * as adminUsersController from '../controllers/adminUsersController';
 
 const router = Router();
 
@@ -26,6 +27,13 @@ router.get('/auth/me', adminAuthController.me);
 
 // KPI Stats
 router.get('/stats', adminKnowledgeBaseController.getStats);
+
+// User Management
+router.get('/users', adminUsersController.listUsers);
+router.get('/users/:id', adminUsersController.getUserById);
+
+// Analytics
+router.get('/analytics/summary', adminUsersController.getAnalyticsSummary);
 
 // Knowledge Base Composite CRUD
 router.get('/knowledge-base', adminKnowledgeBaseController.listKnowledgeBase);

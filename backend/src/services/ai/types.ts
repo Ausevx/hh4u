@@ -32,7 +32,7 @@ export interface ILLMService {
    * non-medical queries, or low-confidence matches. Asks the user
    * to describe their symptoms so the chatbot can help.
    */
-  generateConversationalResponse(userMessage: string): Promise<string>;
+  generateConversationalResponse(userMessage: string, targetLanguage?: string): Promise<string>;
 
   /**
    * Synthesizes a personalized homeopathic answer combining the matched answer template,
