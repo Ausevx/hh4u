@@ -210,7 +210,9 @@ Standard Template Answer: "${params.templateText}"
 User Language Preference: ${params.userLanguage || 'English'}
 Additional Context: ${JSON.stringify(params.additionalContext || {})}
 
-Ensure the response begins with "Personalized Homeopathic Plan" and is compassionate, medically safe (include a disclaimer if necessary), and accurately reflects the standard template advice in the requested language.`;
+Ensure the response begins with "Personalized Homeopathic Plan" and is compassionate, medically safe (include a disclaimer if necessary), and accurately reflects the standard template advice in the requested language.
+
+CRITICAL INSTRUCTION: Do NOT use any markdown formatting (no hashes, no asterisks for bolding). Use plain text suitable for a standard mobile chat bubble. Keep the response very concise (max 3 sentences) and include 1 or 2 friendly emojis.`;
 
     try {
       const response = await this.generateContentWithFallback({
