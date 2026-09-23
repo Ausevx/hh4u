@@ -16,6 +16,9 @@ interface DiseaseDao {
 
     @Query("DELETE FROM diseases")
     suspend fun clearAll()
+
+    @Query("SELECT * FROM diseases WHERE name LIKE '%' || :keyword || '%' OR symptoms LIKE '%' || :keyword || '%' OR category LIKE '%' || :keyword || '%' LIMIT 5")
+    suspend fun searchByKeyword(keyword: String): List<DiseaseEntity>
 }
 
 // Extension function for cosine similarity
