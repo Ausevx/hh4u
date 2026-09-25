@@ -94,6 +94,7 @@ export class ChatbotController {
       res.status(status).json({
         success: false,
         message: error.message || 'Error processing chatbot query',
+        code: error.code,
       });
     }
   }
@@ -159,6 +160,7 @@ export class ChatbotController {
       res.status(status).json({
         success: false,
         message: error.message || 'Error resolving consultation answer',
+        code: error.code,
       });
     }
   }

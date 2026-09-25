@@ -19,6 +19,7 @@ import com.healinghands4u.presentation.components.ChatBubble
 import com.healinghands4u.presentation.components.ChatHeader
 import com.healinghands4u.presentation.components.RxCard
 import com.healinghands4u.presentation.components.YesNoCard
+import com.healinghands4u.presentation.components.YouTubePlayer
 import com.healinghands4u.presentation.theme.SoraFontFamily
 import com.healinghands4u.presentation.theme.trustedTealColors
 
@@ -111,6 +112,12 @@ fun ConsultationScreen(
                         homeRemedy = result.answer.homeRemedyText,
                         safetyDisclaimer = result.answer.safetyDisclaimerText ?: ""
                     )
+                }
+
+                // Inline YouTube video if available
+                if (!result.answer.videoUrl.isNullOrBlank()) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    YouTubePlayer(videoUrl = result.answer.videoUrl!!)
                 }
             } else {
                 if (state.offlineEntry != null) {

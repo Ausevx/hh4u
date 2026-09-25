@@ -7,6 +7,7 @@ import NeedsReviewQuery from '../models/NeedsReviewQuery';
 import QueryClickStats from '../models/QueryClickStats';
 import Answer from '../models/Answer';
 import ConsultationQuery from '../models/ConsultationQuery';
+import { localizeFields, ANSWER_FIELDS } from './localizationService';
 
 export interface ProcessQueryInput {
   text?: string;
@@ -56,33 +57,10 @@ export interface ChatbotQueryResponse {
   message?: string;
   needsReviewId?: string;
   matchCandidates: CandidateResult[];
+  language?: string;
 }
 
 export class ChatbotService {
-  // Fix 6: Pipeline-level response cache for identical queries
-  private pipelineCache: Map<string, { response: ChatbotQueryResponse; cachedAt: number }> = new Map();
-  private readonly CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
-
-  private getCachedResponse(queryText: string, intent: string): ChatbotQueryResponse | null {
-    const key = `${queryText.toLowerCase().trim()}::${intent}`;
-    const cached = this.pipelineCache.get(key);
-    if (cached && (Date.now() - cached.cachedAt) < this.CACHE_TTL_MS) {
-      return cached.response;
-    }
-    if (cached) this.pipelineCache.delete(key);
-    return null;
-  }
-
-  private setCachedResponse(queryText: string, intent: string, response: ChatbotQueryResponse): void {
-    const key = `${queryText.toLowerCase().trim()}::${intent}`;
-    this.pipelineCache.set(key, { response, cachedAt: Date.now() });
-    // Evict old entries if cache grows too large
-    if (this.pipelineCache.size > 500) {
-      const firstKey = this.pipelineCache.keys().next().value;
-      if (firstKey) this.pipelineCache.delete(firstKey);
-    }
-  }
-
   /**
    * Resolves a user health query through speech transcription (if voice),
    * combined intent classification + translation (single API call),
@@ -134,24 +112,8 @@ export class ChatbotService {
       throw new Error('Query text or voiceData is required');
     }
 
-    // Fix 6: Check pipeline cache first — instant response for repeat queries
-    const cachedResponse = this.getCachedResponse(originalQueryText, input.intent);
-    if (cachedResponse) {
-      // Fire session save in background (don't block the response)
-      const session = new ChatbotSession({
-        userId: parsedUserId,
-        originalQueryText,
-        intent: input.intent,
-        matchConfident: cachedResponse.matchConfident,
-        inputMode,
-      });
-      session.save().catch((e: any) => console.error('Session save error:', e));
-      return { ...cachedResponse, sessionId: session._id.toString() };
-    }
-
-    // 3.5 Combined Intent Classification + Translation
-    // Fix 1+2+5: Single API call instead of 2 sequential calls.
-    // Also skips translation entirely for English text (detected via ASCII heuristic).
+    // Detect language and translate in one cached call. Do not infer English from
+    // Latin letters: romanized Indian languages use the same characters.
     let userIntent: 'MEDICAL' | 'GREETING' | 'CHITCHAT' | 'UNCLEAR';
     let translatedQueryText: string;
     let originalLanguage: string;
@@ -160,13 +122,13 @@ export class ChatbotService {
       const result = await ai.llm.classifyAndTranslate(originalQueryText, detectedLang);
       userIntent = result.intent;
       translatedQueryText = result.translatedText || originalQueryText;
-      originalLanguage = detectedLang || result.detectedLanguage || 'en';
+      originalLanguage = result.detectedLanguage || detectedLang || 'en';
     } else {
       // Fallback to old sequential method for mock services
       userIntent = ai.llm.classifyIntent ? await ai.llm.classifyIntent(originalQueryText) : 'MEDICAL';
       const translation = await ai.llm.translateToEnglish(originalQueryText, detectedLang);
       translatedQueryText = translation.translatedText || originalQueryText;
-      originalLanguage = detectedLang || translation.detectedLanguage || 'en';
+      originalLanguage = translation.detectedLanguage || detectedLang || 'en';
     }
 
     if (userIntent === 'GREETING' || userIntent === 'CHITCHAT') {
@@ -175,6 +137,8 @@ export class ChatbotService {
       const session = new ChatbotSession({
         userId: parsedUserId,
         originalQueryText,
+        originalLanguage,
+        translatedQueryText,
         intent: input.intent,
         matchConfident: false,
         inputMode,
@@ -192,8 +156,7 @@ export class ChatbotService {
         message: fallbackText,
         matchCandidates: [],
       };
-      this.setCachedResponse(originalQueryText, input.intent, response);
-      return response;
+      return { ...response, language: originalLanguage };
     }
 
     // 5. Generate 1536-dim Embedding
@@ -236,7 +199,12 @@ export class ChatbotService {
 
       // 7b. Direct Answer Intent
       if (input.intent === 'direct_answer') {
-        const answerDoc = await Answer.findOne({ level1QuestionId: topCandidate.level1QuestionId });
+        const answerDoc = await Answer.findOne({ level1QuestionId: topCandidate.level1QuestionId, answerType: 'level1' });
+        if (!answerDoc) {
+          const error: any = new Error('The selected database answer is unavailable. Please retry or contact the clinic.');
+          error.statusCode = 404;
+          throw error;
+        }
 
         const session = new ChatbotSession({
           userId: parsedUserId,
@@ -256,20 +224,12 @@ export class ChatbotService {
         // Fire in background — don't block
         session.save().catch((e: any) => console.error('Session save error:', e));
 
-        let finalAnswerText: string;
-        if (answerDoc) {
-          finalAnswerText = await ai.llm.generateAnswer(translatedQueryText, {
-            canonicalQuestion: topCandidate.canonicalQuestionText,
-            baseAnswer: answerDoc.answerText,
-            remedy: (answerDoc as any).remedyText || answerDoc.answerText,
-            dosageInstructions: answerDoc.dosageInstructions,
-            homeRemedyText: answerDoc.homeRemedyText,
-            safetyDisclaimerText: answerDoc.safetyDisclaimerText,
-            targetLanguage: originalLanguage
-          });
-        } else {
-          finalAnswerText = await ai.llm.generateAnswer(translatedQueryText, { targetLanguage: originalLanguage });
-        }
+        const localizedAnswer = await localizeFields(ai.llm, {
+          id: answerDoc._id.toString(), answerText: answerDoc.answerText,
+          remedyName: answerDoc.remedyText, dosageInstructions: answerDoc.dosageInstructions,
+          homeRemedyText: answerDoc.homeRemedyText, safetyDisclaimerText: answerDoc.safetyDisclaimerText,
+          videoUrl: answerDoc.videoUrl,
+        }, originalLanguage, ANSWER_FIELDS);
 
         const response: ChatbotQueryResponse = {
           success: true,
@@ -281,18 +241,10 @@ export class ChatbotService {
             id: topCandidate.level1QuestionId.toString(),
             canonicalQuestionText: topCandidate.canonicalQuestionText,
           },
-          answer: {
-            id: answerDoc?._id ? answerDoc._id.toString() : new mongoose.Types.ObjectId().toString(),
-            answerText: finalAnswerText,
-            remedyName: answerDoc?.remedyText,
-            dosageInstructions: answerDoc?.dosageInstructions,
-            homeRemedyText: answerDoc?.homeRemedyText,
-            safetyDisclaimerText: answerDoc?.safetyDisclaimerText,
-            videoUrl: answerDoc?.videoUrl,
-          },
+          answer: localizedAnswer,
+          language: originalLanguage,
           matchCandidates,
         };
-        this.setCachedResponse(originalQueryText, input.intent, response);
         return response;
       }
 
@@ -316,9 +268,14 @@ export class ChatbotService {
           matchedLevel1QuestionId: topCandidate.level1QuestionId,
           matchConfident: true,
         });
-        session.save().catch((e: any) => console.error('Session save error:', e));
-
-        const diagnosticQuestions = consultDoc?.diagnosticQuestions || [];
+        const sourceQuestions = consultDoc?.diagnosticQuestions || [];
+        const questionFields = Object.fromEntries(sourceQuestions.map((q, i) => [`question_${i}`, q.questionText]));
+        // Save the session while localizing questions, but finish both before returning
+        // a session ID the client can submit answers against.
+        const [, translatedQuestions] = await Promise.all([
+          session.save(), localizeFields(ai.llm, questionFields, originalLanguage, Object.keys(questionFields))
+        ]);
+        const diagnosticQuestions = sourceQuestions.map((q, i) => ({ id: q.id, questionText: translatedQuestions[`question_${i}`] }));
 
         return {
           success: true,
@@ -326,6 +283,7 @@ export class ChatbotService {
           matchConfident: true,
           confidenceScore,
           intent: 'consultation',
+          language: originalLanguage,
           matchedLevel1Question: {
             id: topCandidate.level1QuestionId.toString(),
             canonicalQuestionText: topCandidate.canonicalQuestionText,
@@ -391,8 +349,7 @@ export class ChatbotService {
         answerText: fallbackText,
       }
     };
-    this.setCachedResponse(originalQueryText, input.intent, response);
-    return response;
+    return { ...response, language: originalLanguage };
   }
 }
 

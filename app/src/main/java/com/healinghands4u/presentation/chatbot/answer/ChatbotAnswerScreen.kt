@@ -36,7 +36,7 @@ import com.healinghands4u.presentation.common.DoctorContactFooter
 import com.healinghands4u.presentation.components.ChatBubble
 import com.healinghands4u.presentation.components.ChatHeader
 import com.healinghands4u.presentation.components.RxCard
-import com.healinghands4u.presentation.components.VideoLink
+import com.healinghands4u.presentation.components.YouTubePlayer
 import com.healinghands4u.presentation.theme.trustedTealColors
 
 import androidx.compose.material3.Text
@@ -151,6 +151,7 @@ fun ChatbotAnswerScreen(
             }
             is ChatbotUiState.Success -> {
                 ChatbotAnswerContent(
+                    queryText = query,
                     headerMessage = state.answerText,
                     answerText = state.answerText,
                     remedyName = state.remedyName,
@@ -205,6 +206,7 @@ fun ChatbotAnswerScreen(
 
 @Composable
 fun ChatbotAnswerContent(
+    queryText: String? = null,
     headerMessage: String? = null,
     answerText: String,
     remedyName: String? = null,
@@ -214,7 +216,6 @@ fun ChatbotAnswerContent(
     videoUrl: String?,
     modifier: Modifier = Modifier
 ) {
-    val context = LocalContext.current
     val scrollState = rememberScrollState()
 
     Column(
@@ -224,6 +225,17 @@ fun ChatbotAnswerContent(
             .padding(16.dp),
         verticalArrangement = Arrangement.Top
     ) {
+        // User's original question
+        if (!queryText.isNullOrBlank()) {
+            ChatBubble(
+                message = queryText,
+                isUser = true,
+                timestamp = "Just now"
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+        }
+
+        // AI answer explanation
         if (!headerMessage.isNullOrBlank()) {
             ChatBubble(
                 message = headerMessage,
@@ -233,10 +245,9 @@ fun ChatbotAnswerContent(
             Spacer(modifier = Modifier.height(16.dp))
         }
 
-        // Only show the RxCard if we have a real prescription/remedy
+        // Prescription card
         val hasPrescription = dosage != null || homeRemedy != null || (answerText.length < 50 && headerMessage != answerText)
         if (hasPrescription) {
-            // RxCard: Visual Centerpiece
             RxCard(
                 remedyName = remedyName ?: "Personalized Remedy",
                 dosage = dosage ?: "As advised by your homeopathic physician",
@@ -245,26 +256,15 @@ fun ChatbotAnswerContent(
             )
         }
 
-        // VideoLink: External video guide if available
+        // Inline YouTube video player
         if (!videoUrl.isNullOrBlank()) {
             Spacer(modifier = Modifier.height(16.dp))
-            VideoLink(
-                url = videoUrl,
-                label = "Watch Remedy Guide Video",
-                onClick = { url ->
-                    try {
-                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
-                        context.startActivity(intent)
-                    } catch (e: Exception) {
-                        // Safely handle missing browser
-                    }
-                }
-            )
+            YouTubePlayer(videoUrl = videoUrl)
         }
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Embedded Doctor Contact Footer
+        // Doctor contact footer
         DoctorContactFooter()
 
         Spacer(modifier = Modifier.height(16.dp))

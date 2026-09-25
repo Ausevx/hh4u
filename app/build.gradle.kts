@@ -60,6 +60,9 @@ dependencies {
     implementation("androidx.compose.material:material-icons-extended")
     implementation("androidx.compose.ui:ui-text-google-fonts")
     
+    // Coil (image loading for YouTube thumbnails)
+    implementation("io.coil-kt:coil-compose:2.5.0")
+    
     // Hilt
     implementation("com.google.dagger:hilt-android:2.48")
     kapt("com.google.dagger:hilt-android-compiler:2.48")

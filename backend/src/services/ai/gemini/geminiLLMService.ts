@@ -1,12 +1,15 @@
 import { GoogleGenAI } from '@google/genai';
 import { ILLMService, PersonalizeAnswerParams, TranslateResult } from '../types';
+import { GeminiLanguageService } from './geminiLanguageService';
 
 export class GeminiLLMService implements ILLMService {
   private ai: GoogleGenAI;
   private model = process.env.GEMINI_LLM_MODEL || 'gemini-3.5-flash';
+  private languageService: GeminiLanguageService;
 
   constructor(apiKey: string) {
     this.ai = new GoogleGenAI({ apiKey });
+    this.languageService = new GeminiLanguageService(apiKey);
   }
 
   private responseCache: Map<string, any> = new Map();
@@ -50,15 +53,6 @@ export class GeminiLLMService implements ILLMService {
   }
 
   /**
-   * Helper: quickly detect if text is likely English (ASCII-dominant).
-   * Avoids wasting an API call on translation for English queries.
-   */
-  private isLikelyEnglish(text: string): boolean {
-    const asciiChars = text.replace(/[^a-zA-Z0-9\s.,!?'"()-]/g, '');
-    return asciiChars.length / text.length > 0.9;
-  }
-
-  /**
    * Combined intent classification + translation in ONE Gemini API call.
    * Saves 1 API call per query (merges classifyIntent + translateToEnglish).
    */
@@ -67,60 +61,11 @@ export class GeminiLLMService implements ILLMService {
     translatedText: string;
     detectedLanguage: string;
   }> {
-    // Fast path: pure regex for common greetings — zero API calls
-    const trimmed = text.trim().toLowerCase();
-    if (/^(hi|hello|hey|yo|greetings|good morning|good afternoon|good evening|sup|what\'s up|whats up)[!?]*$/.test(trimmed)) {
-      return { intent: 'GREETING', translatedText: text, detectedLanguage: 'en' };
-    }
+    return this.languageService.classifyAndTranslate(text, sourceLanguage);
+  }
 
-    // If text is clearly English, skip translation part of the prompt
-    const likelyEnglish = this.isLikelyEnglish(text);
-
-    const prompt = likelyEnglish
-      ? `Classify this user message into exactly one category:
-- "MEDICAL": health/symptoms/diseases/treatments/remedies question
-- "GREETING": hello/hi/hey greeting
-- "CHITCHAT": casual non-health conversation
-- "UNCLEAR": too vague to determine
-
-User message: "${text}"
-
-Respond with JSON: {"intent": "<category>", "translatedText": "${text}", "detectedLanguage": "en"}`
-      : `Do TWO tasks for this user message:
-1. Classify intent into: "MEDICAL", "GREETING", "CHITCHAT", or "UNCLEAR"
-2. Translate the text to English (if already English, keep as-is)
-
-Source language hint: ${sourceLanguage || 'Auto-detect'}
-User message: "${text}"
-
-Respond with JSON: {"intent": "<category>", "translatedText": "<english translation>", "detectedLanguage": "<detected language code>"}`;
-
-    try {
-      const response = await this.generateContentWithFallback({
-        contents: prompt,
-        config: { responseMimeType: 'application/json' }
-      });
-
-      const responseText = response.text || '{}';
-      const data = JSON.parse(responseText);
-      const intent = (data.intent || 'UNCLEAR').toUpperCase();
-      const validIntents = ['MEDICAL', 'GREETING', 'CHITCHAT', 'UNCLEAR'];
-
-      let detectedLanguage = data.detectedLanguage || 'en';
-      const langLower = detectedLanguage.toLowerCase();
-      if (langLower.includes('hindi') || langLower === 'hi') detectedLanguage = 'hi';
-      else if (langLower.includes('english') || langLower === 'en') detectedLanguage = 'en';
-      else if (langLower.includes('spanish') || langLower === 'es') detectedLanguage = 'es';
-
-      return {
-        intent: validIntents.includes(intent) ? intent as any : 'UNCLEAR',
-        translatedText: data.translatedText || text,
-        detectedLanguage,
-      };
-    } catch (e) {
-      console.warn('[GeminiLLMService] classifyAndTranslate failed, defaulting to MEDICAL with original text', e);
-      return { intent: 'MEDICAL', translatedText: text, detectedLanguage: sourceLanguage || 'en' };
-    }
+  async translateFields(fields: Record<string, string>, targetLanguage: string): Promise<Record<string, string>> {
+    return this.languageService.translateFields(fields, targetLanguage);
   }
 
   

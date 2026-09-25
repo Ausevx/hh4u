@@ -43,6 +43,7 @@ class ConsultationRepository @Inject constructor(
         } catch (e: IOException) {
             return offlineStart(query)
         } catch (e: HttpException) {
+            throwIfTranslationUnavailable(e)
             if (e.code() < 500 && e.code() != 429) throw e
             return offlineStart(query)
         }
@@ -70,6 +71,7 @@ class ConsultationRepository @Inject constructor(
         } catch (e: IOException) {
             return resolveCached(matchedQuestionId, questions, answers)
         } catch (e: HttpException) {
+            throwIfTranslationUnavailable(e)
             if (e.code() < 500 && e.code() != 429) throw e
             return resolveCached(matchedQuestionId, questions, answers)
         }
@@ -79,6 +81,13 @@ class ConsultationRepository @Inject constructor(
         val entry = id?.let { offline.getById(it) }
             ?: throw IllegalStateException("Connection lost and this consultation is not saved offline. Your answers are kept; reconnect and retry.")
         return resolveOffline(entry, questions, answers)
+    }
+
+    private fun throwIfTranslationUnavailable(error: HttpException) {
+        val body = error.response()?.errorBody()?.string().orEmpty()
+        if (body.contains("TRANSLATION_UNAVAILABLE")) {
+            throw IllegalStateException("Translation is temporarily unavailable. Please retry; your answers are kept.")
+        }
     }
 
     private fun resolveOffline(entry: KnowledgeBaseEntity, questions: List<DiagnosticQuestionDto>, answers: Map<String, String>): ConsultationResult {

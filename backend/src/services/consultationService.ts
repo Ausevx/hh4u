@@ -1,8 +1,9 @@
 import mongoose from 'mongoose';
-import { getAIServices } from './ai/aiContainer';
 import ChatbotSession from '../models/ChatbotSession';
 import ConsultationQuery, { IAnswerBranch } from '../models/ConsultationQuery';
 import Answer, { IAnswer } from '../models/Answer';
+import { getAIServices } from './ai/aiContainer';
+import { localizeFields, ANSWER_FIELDS } from './localizationService';
 
 export interface ResolveConsultationInput {
   sessionId: string;
@@ -28,6 +29,7 @@ export interface ConsultationResolutionResponse {
     videoUrl?: string;
   };
   personalized: boolean;
+  language?: string;
 }
 
 export class ConsultationService {
@@ -37,8 +39,6 @@ export class ConsultationService {
    * and updates the session with answers and resolved answer ID.
    */
   public async resolveConsultationAnswer(input: ResolveConsultationInput): Promise<ConsultationResolutionResponse> {
-    const ai = getAIServices();
-
     // 1. Validate Session ID
     const sessionId = input.sessionId;
     if (!sessionId) {
@@ -185,20 +185,23 @@ export class ConsultationService {
       answerDoc?.answerText ||
       `Clinical homeopathic evaluation and individualized guidance for query: "${session.originalQueryText}".`;
 
-    // 7. Synthesize Personalized Final Answer via LLM
-    const personalizedAnswer = await ai.llm.generatePersonalizedAnswer({
-      originalQuery: session.originalQueryText,
-      templateText,
-      userLanguage: session.originalLanguage,
-      additionalContext: { answers: normalizedAnswers },
-    });
-
     // 8. Update ChatbotSession
     session.consultationAnswers = normalizedAnswers;
     if (answerDoc?._id) {
       session.finalAnswerId = answerDoc._id;
     }
-    await session.save();
+    const language = session.originalLanguage || 'en';
+    // Use the saved language rather than detecting again at the answer stage.
+    // One content-keyed translation batch is reusable across users of this branch.
+    const [, localizedAnswer] = await Promise.all([
+      session.save(),
+      localizeFields(getAIServices().llm, {
+        id: answerDoc._id.toString(), answerText: templateText,
+        remedyName: answerDoc.remedyText, dosageInstructions: answerDoc.dosageInstructions,
+        homeRemedyText: answerDoc.homeRemedyText, safetyDisclaimerText: answerDoc.safetyDisclaimerText,
+        videoUrl: answerDoc.videoUrl,
+      }, language, ANSWER_FIELDS),
+    ]);
 
     // Format conditions for response
     let formattedConditions: Record<string, string> = {};
@@ -220,16 +223,11 @@ export class ConsultationService {
           }
         : undefined,
       answer: {
-        id: answerDoc?._id ? answerDoc._id.toString() : new mongoose.Types.ObjectId().toString(),
-        answerText: answerDoc?.answerText || templateText,
-        personalizedAnswer,
-        remedyName: answerDoc?.remedyText,
-        dosageInstructions: answerDoc?.dosageInstructions,
-        homeRemedyText: answerDoc?.homeRemedyText,
-        safetyDisclaimerText: answerDoc?.safetyDisclaimerText,
-        videoUrl: answerDoc?.videoUrl,
+        ...localizedAnswer,
+        personalizedAnswer: localizedAnswer.answerText,
       },
       personalized: true,
+      language,
     };
   }
 }

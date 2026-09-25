@@ -16,6 +16,8 @@ export interface PersonalizeAnswerParams {
 }
 
 export interface ILLMService {
+  /** Translate a batch of display fields without rewriting the clinical content. */
+  translateFields?(fields: Record<string, string>, targetLanguage: string): Promise<Record<string, string>>;
   /**
    * Translates non-English or multilingual query text into canonical English.
    */

@@ -76,6 +76,12 @@ class ChatbotViewModel @Inject constructor(
                     _state.value = ChatbotUiState.Error("Failed: ${response.message ?: "Unknown error"}")
                 }
             } catch (e: Exception) {
+                if (e is CancellationException) throw e
+                if (e is retrofit2.HttpException &&
+                    e.response()?.errorBody()?.string()?.contains("TRANSLATION_UNAVAILABLE") == true) {
+                    _state.value = ChatbotUiState.Error("Translation is temporarily unavailable. Please retry.")
+                    return@launch
+                }
                 // Fallback to offline FTS search
                 try {
                     val localMatches = offlineSearchRepository.searchOffline(symptoms)
