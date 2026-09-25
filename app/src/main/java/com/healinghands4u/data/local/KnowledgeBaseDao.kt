@@ -8,6 +8,15 @@ import androidx.room.Query
 @Dao
 interface KnowledgeBaseDao {
 
+    @androidx.room.Transaction
+    suspend fun replaceAll(entries: List<KnowledgeBaseEntity>) {
+        clearAll()
+        insertAll(entries)
+    }
+
+    @Query("SELECT * FROM knowledge_base WHERE id = :id")
+    suspend fun getById(id: String): KnowledgeBaseEntity?
+
     @Query("""
         SELECT kb.* FROM knowledge_base kb
         INNER JOIN knowledge_base_fts fts ON kb.rowid = fts.rowid

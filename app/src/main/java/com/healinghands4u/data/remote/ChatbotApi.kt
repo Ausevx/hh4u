@@ -31,6 +31,16 @@ data class DiagnosticQuestionDto(
     val questionText: String
 )
 
+data class ConsultationDto(
+    val consultationQueryId: String?,
+    val diagnosticQuestions: List<DiagnosticQuestionDto>?
+)
+
+data class OfflineAnswerBranch(
+    val conditions: Map<String, String>,
+    val answer: AnswerDto?
+)
+
 data class ChatbotQueryResponse(
     val success: Boolean,
     val sessionId: String? = null,
@@ -41,7 +51,8 @@ data class ChatbotQueryResponse(
     val intent: String? = null,
     val matchedLevel1Question: MatchedQuestionDto? = null,
     val diagnosticQuestions: List<DiagnosticQuestionDto>? = null,
-    val fallback: Boolean? = null
+    val fallback: Boolean? = null,
+    val consultation: ConsultationDto? = null
 )
 
 data class ConsultationAnswerRequest(

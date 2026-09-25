@@ -16,7 +16,10 @@ private const val TAG = "HealingHandsApp"
 private const val SYNC_WORK_NAME = "hh4u_analytics_sync"
 
 @HiltAndroidApp
-class HealingHandsApp : Application() {
+class HealingHandsApp : Application(), androidx.work.Configuration.Provider {
+    @javax.inject.Inject lateinit var workerFactory: androidx.hilt.work.HiltWorkerFactory
+    override val workManagerConfiguration: androidx.work.Configuration
+        get() = androidx.work.Configuration.Builder().setWorkerFactory(workerFactory).build()
     override fun onCreate() {
         super.onCreate()
         try {
@@ -47,6 +50,11 @@ class HealingHandsApp : Application() {
                 syncRequest
             )
 
+            WorkManager.getInstance(this).enqueueUniqueWork(
+                "hh4u_initial_sync", androidx.work.ExistingWorkPolicy.KEEP,
+                androidx.work.OneTimeWorkRequestBuilder<AnalyticsSyncWorker>()
+                    .setConstraints(constraints).build()
+            )
             Log.i(TAG, "Periodic analytics sync worker scheduled")
         } catch (e: Throwable) {
             Log.w(TAG, "Failed to schedule sync worker: ${e.message}")

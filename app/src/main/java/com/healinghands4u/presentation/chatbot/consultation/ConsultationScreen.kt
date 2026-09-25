@@ -1,164 +1,103 @@
 package com.healinghands4u.presentation.chatbot.consultation
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateMapOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.healinghands4u.data.local.KnowledgeBaseEntity
+import com.healinghands4u.data.remote.DiagnosticQuestionDto
+import com.healinghands4u.presentation.chatbot.answer.ChatbotAnswerContent
 import com.healinghands4u.presentation.common.DoctorContactFooter
-import com.healinghands4u.presentation.components.ChatBubble
 import com.healinghands4u.presentation.components.ChatHeader
 import com.healinghands4u.presentation.components.YesNoCard
-import com.healinghands4u.presentation.theme.SoraFontFamily
-import com.healinghands4u.presentation.theme.trustedTealColors
+
+@Composable
+fun ConsultationRoute(query: String, onBackClick: () -> Unit, viewModel: ConsultationViewModel = hiltViewModel()) {
+    val state by viewModel.state.collectAsState()
+    LaunchedEffect(query) { viewModel.start(query) }
+    ConsultationScreen(state = state, onBackClick = onBackClick,
+        onSelectCandidate = viewModel::selectCandidate, onAnswer = viewModel::answer,
+        onSubmit = viewModel::submit, onRetry = { viewModel.start(query, retry = true) })
+}
 
 @Composable
 fun ConsultationScreen(
     questionText: String? = null,
     onBackClick: () -> Unit = {},
     onAnswerSelected: (String) -> Unit = {},
-    viewModel: ConsultationViewModel = remember { ConsultationViewModel() }
+    state: ConsultationUiState = ConsultationUiState(),
+    onSelectCandidate: (KnowledgeBaseEntity) -> Unit = {},
+    onAnswer: (String, String) -> Unit = { _, _ -> },
+    onSubmit: () -> Unit = {},
+    onRetry: () -> Unit = {}
 ) {
-    val tokens = MaterialTheme.trustedTealColors
-    val scrollState = rememberScrollState()
-
-    // If a single question is provided (e.g. from unit tests), display it directly
-    // Otherwise load the full diagnostic questions from mock data
-    val isSingleQuestionMode = questionText != null
-
-    val questions = remember(questionText) {
-        if (questionText != null) {
-            listOf(DiagnosticQuestionUI("single_q", questionText))
+    // Optional standalone question for previews; production state comes from the route.
+    var previewAnswer by remember(questionText) { mutableStateOf<String?>(null) }
+    val questions = questionText?.let { listOf(DiagnosticQuestionDto("single_q", it)) } ?: state.questions
+    val answers = if (questionText != null) previewAnswer?.let { mapOf("single_q" to it) }.orEmpty() else state.answers
+    Scaffold(topBar = {
+        ChatHeader(title = if (state.result != null) "Your Healing Plan" else "Consultation",
+            subtitle = "Dr. Anjali Jariwala (DHMS)", onBackClick = onBackClick)
+    }) { padding ->
+        val result = state.result
+        if (result != null) {
+            Column(Modifier.fillMaxSize().padding(padding)) {
+                Text("Your question: ${state.query}", Modifier.padding(16.dp))
+                if (result.offline) Text("Offline result from saved consultation guidance.", Modifier.padding(horizontal = 16.dp))
+                ChatbotAnswerContent(
+                    answerText = result.answer.personalizedAnswer?.takeIf { it.isNotBlank() }
+                        ?: result.answer.answerText.orEmpty(),
+                    remedyName = result.answer.remedyName, dosage = result.answer.dosageInstructions,
+                    homeRemedy = result.answer.homeRemedyText, safetyDisclaimer = result.answer.safetyDisclaimerText,
+                    videoUrl = result.answer.videoUrl, modifier = Modifier.weight(1f))
+            }
         } else {
-            viewModel.diagnosticQuestions
-        }
-    }
-
-    val answers = remember { mutableStateMapOf<String, String>() }
-    var lastSelectedAnswer by remember { mutableStateOf<String?>(null) }
-
-    Scaffold(
-        modifier = Modifier.fillMaxSize(),
-        containerColor = tokens.bg,
-        topBar = {
-            ChatHeader(
-                title = "Consultation",
-                subtitle = "Dr. Anjali Jariwala (DHMS)",
-                onBackClick = onBackClick
-            )
-        }
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .verticalScroll(scrollState)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.Top
-        ) {
-            // User query recap bubble
-            ChatBubble(
-                message = "Query: I am experiencing acute symptoms and need a personalized assessment.",
-                isUser = true,
-                timestamp = "Just now"
-            )
-
-            Spacer(modifier = Modifier.height(14.dp))
-
-            Text(
-                text = "Please answer following to help you better",
-                style = MaterialTheme.typography.headlineSmall.copy(
-                    fontFamily = SoraFontFamily,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 18.sp
-                ),
-                color = tokens.ink
-            )
-
-            Spacer(modifier = Modifier.height(4.dp))
-
-            Text(
-                text = "Personalized homeopathic recommendations require modality and symptom clarity.",
-                style = MaterialTheme.typography.bodySmall,
-                color = tokens.inkDim
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Diagnostic Yes/No cards
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                questions.forEach { question ->
-                    val selected = answers[question.id] ?: if (isSingleQuestionMode) lastSelectedAnswer else null
-                    YesNoCard(
-                        questionId = question.id,
-                        questionText = question.questionText,
-                        selectedAnswer = selected,
-                        onAnswerSelected = { ans ->
-                            answers[question.id] = ans
-                            lastSelectedAnswer = ans
-                            onAnswerSelected(ans)
-                        }
-                    )
+            Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                if (state.query.isNotBlank()) Text("Your question: ${state.query}")
+                if (state.offlineEntry != null) {
+                    Text("Offline consultation: using saved questions and answers.")
+                    Text(state.offlineEntry.questionText, style = MaterialTheme.typography.titleMedium)
                 }
+                if (state.candidates.isNotEmpty()) {
+                    Text("You are using saved guidance. Choose the topic that best matches your symptoms.")
+                    state.candidates.forEach { entry ->
+                        OutlinedButton(onClick = { onSelectCandidate(entry) }, modifier = Modifier.fillMaxWidth()) {
+                            Text(entry.questionText)
+                        }
+                    }
+                }
+                state.message?.let { Text(it) }
+                if (questions.isNotEmpty()) {
+                    Text("Please answer following to help you better", style = MaterialTheme.typography.titleLarge)
+                    questions.forEach { question ->
+                        // Prevent edits while submitting so the displayed result matches the submitted answers.
+                        if (state.loading) Text("${question.questionText} — ${answers[question.id].orEmpty()}")
+                        else YesNoCard(questionId = question.id, questionText = question.questionText,
+                            selectedAnswer = answers[question.id], onAnswerSelected = { value ->
+                                if (questionText != null) { previewAnswer = value; onAnswerSelected(value) }
+                                else onAnswer(question.id, value)
+                            })
+                    }
+                    Button(onClick = {
+                        if (questionText != null) previewAnswer?.let(onAnswerSelected) else onSubmit()
+                    }, enabled = !state.loading && questions.all { answers[it.id] in listOf("yes", "no") },
+                        modifier = Modifier.fillMaxWidth()) { Text("Submit Answers & Get Remedy") }
+                }
+                if (state.loading) {
+                    CircularProgressIndicator()
+                    Text(if (questions.isEmpty()) "Loading consultation questions…" else "Preparing your guidance…")
+                }
+                state.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+                if (!state.loading && questions.isEmpty() && state.candidates.isEmpty()) {
+                    Button(onClick = onRetry) { Text("Retry") }
+                }
+                DoctorContactFooter()
             }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            val allAnswered = questions.all { answers.containsKey(it.id) || (isSingleQuestionMode && lastSelectedAnswer != null) }
-
-            // Submit Button
-            Button(
-                onClick = {
-                    val finalAnswer = lastSelectedAnswer ?: answers.values.firstOrNull() ?: "yes"
-                    onAnswerSelected(finalAnswer)
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp),
-                enabled = allAnswered,
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = tokens.accent,
-                    contentColor = tokens.accentInk,
-                    disabledContainerColor = tokens.line,
-                    disabledContentColor = tokens.inkDim
-                )
-            ) {
-                Text(
-                    text = "Submit Answers & Get Remedy",
-                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(28.dp))
-
-            // Embedded Doctor Contact Footer
-            DoctorContactFooter()
-
-            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }

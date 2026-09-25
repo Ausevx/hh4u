@@ -25,13 +25,8 @@ class AnalyticsSyncWorker @AssistedInject constructor(
                 Log.w(TAG, "Analytics flush returned false, will retry")
             }
 
-            // 2. Re-sync the knowledge base if stale (older than 24 hours)
-            if (offlineSearchRepository.isKnowledgeBaseStale()) {
-                Log.i(TAG, "Knowledge base is stale, triggering sync")
-                offlineSearchRepository.syncKnowledgeBase()
-            }
-
-            Result.success()
+            val knowledgeSuccess = offlineSearchRepository.syncKnowledgeBase()
+            if (analyticsSuccess && knowledgeSuccess) Result.success() else Result.retry()
         } catch (e: Exception) {
             Log.e(TAG, "Worker failed: ${e.message}", e)
             Result.retry()

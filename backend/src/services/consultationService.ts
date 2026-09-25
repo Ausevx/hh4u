@@ -21,6 +21,7 @@ export interface ConsultationResolutionResponse {
     id: string;
     answerText: string;
     personalizedAnswer: string;
+    remedyName?: string;
     dosageInstructions?: string;
     homeRemedyText?: string;
     safetyDisclaimerText?: string;
@@ -106,7 +107,7 @@ export class ConsultationService {
       throw notFoundErr;
     }
 
-    if (!session.matchConfident || !session.matchedLevel1QuestionId) {
+    if (session.intent !== 'consultation' || !session.matchConfident || !session.matchedLevel1QuestionId) {
       const badStateErr: any = new Error('Session does not have a confident consultation match');
       badStateErr.statusCode = 400;
       throw badStateErr;
@@ -116,6 +117,14 @@ export class ConsultationService {
     const consultDoc = await ConsultationQuery.findOne({
       level1QuestionId: session.matchedLevel1QuestionId,
     });
+
+    const expectedIds = new Set((consultDoc?.diagnosticQuestions || []).map(q => q.id));
+    if (expectedIds.size === 0 || Object.keys(normalizedAnswers).length !== expectedIds.size ||
+        Object.keys(normalizedAnswers).some(id => !expectedIds.has(id))) {
+      const error: any = new Error('Answer every diagnostic question using the question IDs from this consultation.');
+      error.statusCode = 400;
+      throw error;
+    }
 
     // 5. Evaluate Answer Branches
     let matchedBranch: IAnswerBranch | null = null;
@@ -150,10 +159,13 @@ export class ConsultationService {
         }
       }
 
-      // If no exact branch matched, gracefully fall back to first branch
-      if (!matchedBranch) {
-        matchedBranch = consultDoc.answerBranches[0];
-      }
+
+    }
+
+    if (!matchedBranch?.resolvedAnswerId) {
+      const error: any = new Error('No consultation answer matches these responses. Please consult the clinic.');
+      error.statusCode = 422;
+      throw error;
     }
 
     // 6. Fetch Resolved Answer Document
@@ -164,7 +176,9 @@ export class ConsultationService {
     }
 
     if (!answerDoc) {
-      answerDoc = await Answer.findOne({ level1QuestionId: session.matchedLevel1QuestionId });
+      const error: any = new Error('The matched consultation answer is unavailable. Please consult the clinic.');
+      error.statusCode = 422;
+      throw error;
     }
 
     const templateText =
@@ -209,6 +223,7 @@ export class ConsultationService {
         id: answerDoc?._id ? answerDoc._id.toString() : new mongoose.Types.ObjectId().toString(),
         answerText: answerDoc?.answerText || templateText,
         personalizedAnswer,
+        remedyName: answerDoc?.remedyText,
         dosageInstructions: answerDoc?.dosageInstructions,
         homeRemedyText: answerDoc?.homeRemedyText,
         safetyDisclaimerText: answerDoc?.safetyDisclaimerText,

@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.healinghands4u.data.repository.KnowledgeRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.CancellationException
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -69,10 +70,12 @@ class ChatbotViewModel @Inject constructor(
                         videoUrl = ans?.videoUrl
                     )
                     // Record click
-                    offlineSearchRepository.recordSearchEvent(symptoms, null, ans?.id)
+                    offlineSearchRepository.recordSearchEvent(symptoms, null, response.matchedLevel1Question?.id)
                 } else {
                     _state.value = ChatbotUiState.Error("Failed: ${response.message ?: "Unknown error"}")
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 // Fallback to offline FTS search
                 try {

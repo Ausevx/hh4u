@@ -24,7 +24,11 @@ object DatabaseModule {
             context,
             AppDatabase::class.java,
             "healing_hands_db"
-        ).fallbackToDestructiveMigration().build()
+        ).addMigrations(object : androidx.room.migration.Migration(2, 3) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE knowledge_base ADD COLUMN consultationJson TEXT")
+            }
+        }).fallbackToDestructiveMigration().build()
     }
 
     @Provides

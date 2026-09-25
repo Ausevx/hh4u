@@ -269,10 +269,7 @@ export class ChatbotService {
         });
         await session.save();
 
-        const diagnosticQuestions = consultDoc?.diagnosticQuestions || [
-          { id: 'q1', questionText: 'Is the symptom acute and throbbing?' },
-          { id: 'q2', questionText: 'Is there accompanying nausea or light sensitivity?' },
-        ];
+        const diagnosticQuestions = consultDoc?.diagnosticQuestions || [];
 
         return {
           success: true,

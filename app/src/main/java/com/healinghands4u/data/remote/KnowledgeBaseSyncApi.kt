@@ -19,7 +19,9 @@ data class KnowledgeBaseSyncItem(
     val diagnosticQ1: String?,
     val diagnosticQ2: String?,
     val diagnosticQ3: String?,
-    val updatedAt: Long?
+    val updatedAt: Long?,
+    val diagnosticQuestions: List<DiagnosticQuestionDto>? = null,
+    val answerBranches: List<OfflineAnswerBranch>? = null
 )
 
 data class KnowledgeBaseSyncResponse(
@@ -27,7 +29,8 @@ data class KnowledgeBaseSyncResponse(
     val upToDate: Boolean?,
     val dataVersion: String?,
     val totalItems: Int?,
-    val items: List<KnowledgeBaseSyncItem>?
+    val items: List<KnowledgeBaseSyncItem>?,
+    val schemaVersion: Int? = null
 )
 
 data class SearchEventDto(

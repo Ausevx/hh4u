@@ -18,5 +18,6 @@ data class KnowledgeBaseEntity(
     val diagnosticQ2: String?,
     val diagnosticQ3: String?,
     val tags: String?,
-    val updatedAt: Long
+    val updatedAt: Long,
+    val consultationJson: String? = null
 )

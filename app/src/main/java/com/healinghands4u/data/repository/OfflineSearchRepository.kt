@@ -14,6 +14,8 @@ import com.healinghands4u.data.remote.SearchEventDto
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.CancellationException
 
 private const val TAG = "OfflineSearchRepo"
 private const val PREFS_NAME = "kb_sync_prefs"
@@ -28,6 +30,8 @@ class OfflineSearchRepository @Inject constructor(
     private val searchEventDao: SearchEventDao,
     private val syncApi: KnowledgeBaseSyncApi
 ) {
+    private val cacheMutex = kotlinx.coroutines.sync.Mutex()
+    private val gson = com.google.gson.Gson()
     private val prefs: SharedPreferences =
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
@@ -43,54 +47,38 @@ class OfflineSearchRepository @Inject constructor(
     }
 
     /**
-     * Searches the local knowledge base using FTS keyword matching.
+     * Searches the local knowledge base using ranked keyword matching.
      * Returns an empty list if no matches are found.
      */
     suspend fun searchOffline(query: String): List<KnowledgeBaseEntity> {
-        return try {
-            // FTS4 uses MATCH syntax; sanitize user input for safety
-            val sanitized = query.replace("\"", "").trim()
-            if (sanitized.isBlank()) return emptyList()
-
-            // Try exact match first, then wildcard
-            val results = knowledgeBaseDao.searchByKeyword("\"$sanitized\"")
-            if (results.isNotEmpty()) return results
-
-            // Try prefix matching with wildcard
-            val words = sanitized.split(" ").filter { it.isNotBlank() }
-            val wildcardQuery = words.joinToString(" ") { "$it*" }
-            knowledgeBaseDao.searchByKeyword(wildcardQuery)
-        } catch (e: Exception) {
-            Log.e(TAG, "Offline search failed: ${e.message}", e)
-            emptyList()
-        }
+        getLocalKbCount()
+        return OfflineKnowledgeMatcher.search(query, knowledgeBaseDao.getAll())
     }
+
+    suspend fun getById(id: String): KnowledgeBaseEntity? = knowledgeBaseDao.getById(id)
 
     /**
      * Downloads the knowledge base from the backend and replaces the local cache.
      * Uses version checking to skip re-downloading if data hasn't changed.
      */
-    suspend fun syncKnowledgeBase(): Boolean {
-        return try {
-            val lastVersion = prefs.getString(KEY_LAST_SYNC, null)
+    suspend fun syncKnowledgeBase(): Boolean = cacheMutex.withLock {
+        return@withLock try {
+            val lastVersion = prefs.getString("snapshot_v2", null)
             val response = syncApi.getKnowledgeBase(since = lastVersion)
 
-            if (!response.success) {
+            if (!response.success || response.schemaVersion != 2) {
                 Log.w(TAG, "Sync API returned failure")
-                return false
+                return@withLock false
             }
 
             if (response.upToDate == true) {
                 Log.d(TAG, "Knowledge base is up to date")
                 prefs.edit().putLong(KEY_LAST_SYNC_TIME, System.currentTimeMillis()).apply()
-                return true
+                return@withLock true
             }
 
-            val items = response.items ?: emptyList()
-            if (items.isEmpty()) {
-                Log.w(TAG, "Sync returned empty items list")
-                return false
-            }
+            val items = response.items ?: return@withLock false
+            if (response.totalItems != null && response.totalItems != items.size) return@withLock false
 
             val entities = items.map { item ->
                 KnowledgeBaseEntity(
@@ -107,22 +95,26 @@ class OfflineSearchRepository @Inject constructor(
                     diagnosticQ2 = item.diagnosticQ2,
                     diagnosticQ3 = item.diagnosticQ3,
                     tags = item.tags?.joinToString(","),
-                    updatedAt = item.updatedAt ?: System.currentTimeMillis()
+                    updatedAt = item.updatedAt ?: System.currentTimeMillis(),
+                    consultationJson = gson.toJson(OfflineConsultationData(
+                        item.diagnosticQuestions ?: emptyList(), item.answerBranches ?: emptyList()
+                    ))
                 )
             }
 
             // Replace local cache
-            knowledgeBaseDao.clearAll()
-            knowledgeBaseDao.insertAll(entities)
+            knowledgeBaseDao.replaceAll(entities)
 
             // Save the version for next sync
             prefs.edit()
-                .putString(KEY_LAST_SYNC, response.dataVersion)
+                .putString("snapshot_v2", response.dataVersion)
                 .putLong(KEY_LAST_SYNC_TIME, System.currentTimeMillis())
                 .apply()
 
             Log.i(TAG, "Synced ${entities.size} knowledge base entries")
             true
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.e(TAG, "Knowledge base sync failed: ${e.message}", e)
             false
@@ -140,13 +132,13 @@ class OfflineSearchRepository @Inject constructor(
     /**
      * Returns the number of locally cached knowledge base entries.
      */
-    suspend fun getLocalKbCount(): Int {
+    suspend fun getLocalKbCount(): Int = cacheMutex.withLock {
         val count = knowledgeBaseDao.getCount()
-        if (count == 0) {
+        if (!prefs.contains("snapshot_v2") && !prefs.getBoolean("bundle_v3_loaded", false)) {
             seedOfflineDbIfEmpty()
-            return knowledgeBaseDao.getCount()
+            return@withLock knowledgeBaseDao.getCount()
         }
-        return count
+        count
     }
 
     /**
@@ -159,12 +151,14 @@ class OfflineSearchRepository @Inject constructor(
             val entries: List<KnowledgeBaseEntity> = com.google.gson.Gson().fromJson(jsonString, type)
             
             if (entries.isNotEmpty()) {
-                knowledgeBaseDao.insertAll(entries)
+                knowledgeBaseDao.replaceAll(entries)
+                prefs.edit().putBoolean("bundle_v3_loaded", true).apply()
                 Log.i(TAG, "Successfully seeded offline DB with ${entries.size} entries")
                 
-                // Mark as synced so we don't immediately overwrite it
-                prefs.edit().putLong(KEY_LAST_SYNC_TIME, System.currentTimeMillis()).apply()
+                // Bundled content is a fallback, not confirmation of a server sync.
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.e(TAG, "Failed to seed offline DB from assets: ${e.message}", e)
         }
@@ -184,6 +178,8 @@ class OfflineSearchRepository @Inject constructor(
                     synced = false
                 )
             )
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.e(TAG, "Failed to record search event: ${e.message}", e)
         }
@@ -218,6 +214,8 @@ class OfflineSearchRepository @Inject constructor(
                 Log.w(TAG, "Analytics sync API returned failure")
                 false
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.e(TAG, "Analytics flush failed: ${e.message}", e)
             false
