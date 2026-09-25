@@ -256,7 +256,9 @@ This message doesn't appear to be a specific health question. Respond naturally 
 
 IMPORTANT: You MUST write your response in the following language: ${targetLanguage}.
 
-Respond directly (no JSON, no formatting):`;
+Respond directly (no JSON, no formatting):
+
+CRITICAL INSTRUCTION: Do NOT use any markdown formatting (no hashes #, no asterisks ** for bolding, no bullet points). Use plain text suitable for a standard mobile chat bubble. Keep the response very concise (max 3 sentences) and include 1 or 2 friendly emojis.`;
 
     try {
       const response = await this.generateContentWithFallback({

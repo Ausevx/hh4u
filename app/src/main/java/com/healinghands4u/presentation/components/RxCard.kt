@@ -99,7 +99,7 @@ fun RxCard(
                             color = tokens.inkDim
                         )
                         Text(
-                            text = dosage,
+                            text = dosage.replace(Regex("\\*\\*|\\*"), "").replace(Regex("^#+\\s*", RegexOption.MULTILINE), ""),
                             style = MaterialTheme.typography.bodyMedium.copy(
                                 fontWeight = FontWeight.SemiBold,
                                 fontSize = 14.sp
@@ -124,7 +124,7 @@ fun RxCard(
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = homeRemedy,
+                        text = homeRemedy.replace(Regex("\\*\\*|\\*"), "").replace(Regex("^#+\\s*", RegexOption.MULTILINE), ""),
                         style = MaterialTheme.typography.bodyMedium,
                         color = tokens.inkDim
                     )
@@ -151,7 +151,7 @@ fun RxCard(
                         )
                         Spacer(modifier = Modifier.width(10.dp))
                         Text(
-                            text = safetyDisclaimer,
+                            text = safetyDisclaimer.replace(Regex("\\*\\*|\\*"), "").replace(Regex("^#+\\s*", RegexOption.MULTILINE), ""),
                             style = MaterialTheme.typography.bodySmall.copy(
                                 fontWeight = FontWeight.Medium,
                                 fontSize = 12.sp
