@@ -60,6 +60,9 @@ export interface ChatbotQueryResponse {
   language?: string;
 }
 
+const queryCache = new Map<string, { expiresAt: number; response: ChatbotQueryResponse }>();
+const CACHE_TTL_MS = 1000 * 60 * 60; // 1 hour
+
 export class ChatbotService {
   /**
    * Resolves a user health query through speech transcription (if voice),
@@ -108,6 +111,14 @@ export class ChatbotService {
       originalQueryText = (rawText as string).trim();
     }
 
+    if (inputMode === 'text' && input.intent === 'direct_answer' && originalQueryText) {
+      const cacheKey = originalQueryText.trim().toLowerCase();
+      const cached = queryCache.get(cacheKey);
+      if (cached && cached.expiresAt > Date.now()) {
+        console.log(`[ChatbotService] Cache hit`);
+        return cached.response;
+      }
+    }
     if (!originalQueryText) {
       throw new Error('Query text or voiceData is required');
     }
@@ -245,6 +256,16 @@ export class ChatbotService {
           language: originalLanguage,
           matchCandidates,
         };
+        if (inputMode === 'text' && input.intent === 'direct_answer') {
+          queryCache.set(originalQueryText.toLowerCase().trim(), {
+            expiresAt: Date.now() + CACHE_TTL_MS,
+            response
+          });
+          // To prevent infinite growth
+          if (queryCache.size > 1000) {
+            queryCache.delete(queryCache.keys().next().value!);
+          }
+        }
         return response;
       }
 
