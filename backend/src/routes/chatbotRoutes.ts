@@ -1,6 +1,6 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import chatbotController from '../controllers/chatbotController';
-import { verifyToken } from '../utils/jwt';
+import { validateSession, InvalidSession } from '../middlewares/authMiddleware';
 
 const router = Router();
 
@@ -9,20 +9,22 @@ const router = Router();
  * If a valid JWT Bearer token is passed, attaches decoded payload to req.user.
  * If no token is provided (guest/anonymous access), proceeds without error.
  */
-export const optionalAuthenticateToken = (
+export const optionalAuthenticateToken = async (
   req: Request,
   res: Response,
   next: NextFunction
-): void => {
+): Promise<void> => {
   const authHeader = req.headers.authorization;
   if (authHeader && authHeader.startsWith('Bearer ')) {
     const token = authHeader.substring(7).trim();
     if (token) {
       try {
-        const decoded = verifyToken(token);
+        const decoded = await validateSession(token);
         req.user = decoded;
-      } catch {
-        // Continue as unauthenticated guest for chatbot interactions
+      } catch (error) {
+        res.status(error instanceof InvalidSession ? 401 : 503).json({ success: false,
+          message: error instanceof InvalidSession ? 'Please sign in again.' : 'Session verification is temporarily unavailable.' });
+        return;
       }
     }
   }

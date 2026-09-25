@@ -10,6 +10,8 @@ import adminRoutes from './routes/adminRoutes';
 import syncRoutes from './routes/syncRoutes';
 
 const app = express();
+// Set only to the number of trusted reverse proxies in the deployment.
+if (process.env.TRUST_PROXY_HOPS) app.set('trust proxy', Number(process.env.TRUST_PROXY_HOPS));
 
 // Middlewares
 app.use(cors());

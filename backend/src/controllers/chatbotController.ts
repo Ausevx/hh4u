@@ -22,8 +22,8 @@ export class ChatbotController {
       } = req.body || {};
 
       // Pull user identity from optional authenticated JWT if present
-      const userId = req.body?.userId || req.user?._id || req.user?.userId;
-      const userEmail = req.body?.userEmail || req.user?.email;
+      const userId = req.user?.userId;
+      const userEmail = req.user?.email;
 
       // Validate Intent
       if (!intent) {

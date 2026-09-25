@@ -7,7 +7,6 @@ import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.NetworkType
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
-import com.google.firebase.FirebaseApp
 import com.healinghands4u.data.repository.AnalyticsSyncWorker
 import dagger.hilt.android.HiltAndroidApp
 import java.util.concurrent.TimeUnit
@@ -22,13 +21,6 @@ class HealingHandsApp : Application(), androidx.work.Configuration.Provider {
         get() = androidx.work.Configuration.Builder().setWorkerFactory(workerFactory).build()
     override fun onCreate() {
         super.onCreate()
-        try {
-            FirebaseApp.initializeApp(this)
-            Log.i(TAG, "FirebaseApp initialized successfully.")
-        } catch (e: Throwable) {
-            Log.w(TAG, "FirebaseApp initialization skipped or failed: ${e.message}")
-        }
-
         // Schedule periodic background sync (analytics flush + KB re-sync)
         schedulePeriodicSync()
     }

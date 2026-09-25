@@ -1,17 +1,10 @@
-import mongoose, { Schema, Document } from 'mongoose';
-
-export interface IOtp extends Document {
-  email: string;
-  otp: string;
-  expiresAt: Date;
-  createdAt: Date;
-}
-
-const OtpSchema: Schema = new Schema({
-  email: { type: String, required: true, lowercase: true, trim: true },
-  otp: { type: String, required: true },
+import mongoose, { Schema } from 'mongoose';
+// New collection invalidates legacy plaintext OTPs.
+export default mongoose.model('EmailChallenge', new Schema({
+  _id: { type: String, required: true },
+  hash: { type: String, required: true },
+  attempts: { type: Number, default: 0 },
+  ready: { type: Boolean, default: false },
   expiresAt: { type: Date, required: true, index: { expires: 0 } },
-  createdAt: { type: Date, default: Date.now }
-});
-
-export default mongoose.model<IOtp>('Otp', OtpSchema);
+  createdAt: { type: Date, required: true }
+}));

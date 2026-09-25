@@ -16,6 +16,9 @@ android {
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"
+        val googleClientId = providers.gradleProperty("GOOGLE_WEB_CLIENT_ID")
+            .orElse(providers.environmentVariable("GOOGLE_WEB_CLIENT_ID")).getOrElse("")
+        resValue("string", "google_web_client_id", googleClientId)
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -44,9 +47,16 @@ android {
             isIncludeAndroidResources = true
         }
     }
+    // Run authentication regressions independently of the older chatbot UI tests.
+    if (providers.gradleProperty("authTestsOnly").orNull == "true") {
+        sourceSets.getByName("test").java.setIncludes(setOf("**/AuthViewModelTest.kt"))
+    }
 }
 
 dependencies {
+    implementation("androidx.credentials:credentials:1.3.0")
+    implementation("androidx.credentials:credentials-play-services-auth:1.3.0")
+    implementation("com.google.android.libraries.identity.googleid:googleid:1.1.1")
     implementation("androidx.core:core-ktx:1.12.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.6.2")
     implementation("androidx.activity:activity-compose:1.8.1")
@@ -79,10 +89,6 @@ dependencies {
     implementation("com.squareup.retrofit2:retrofit:2.9.0")
     implementation("com.squareup.retrofit2:converter-gson:2.9.0")
     
-    // Firebase Auth
-    implementation(platform("com.google.firebase:firebase-bom:32.7.0"))
-    implementation("com.google.firebase:firebase-auth")
-
     // WorkManager for background sync
     implementation("androidx.work:work-runtime-ktx:2.9.0")
     implementation("androidx.hilt:hilt-work:1.1.0")
@@ -91,6 +97,7 @@ dependencies {
     
     debugImplementation("androidx.compose.ui:ui-test-manifest")
     testImplementation("junit:junit:4.13.2")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
     testImplementation("org.robolectric:robolectric:4.11.1")
     testImplementation(platform("androidx.compose:compose-bom:2023.10.01"))
     testImplementation("androidx.compose.ui:ui-test-junit4")

@@ -74,7 +74,7 @@ fun LoginScreen(
     onGuestClick: () -> Unit = onLoginSuccess,
     onGoogleClick: () -> Unit = {},
     onOtpRequested: (String) -> Unit = {},
-    onOtpVerified: (String, String) -> Unit = { _, _ -> onLoginSuccess() },
+    onOtpVerified: (String, String) -> Unit = { _, _ -> },
     viewModel: AuthViewModel? = null
 ) {
     val context = LocalContext.current
@@ -87,7 +87,11 @@ fun LoginScreen(
 
     var email by remember { mutableStateOf("") }
     var otp by remember { mutableStateOf("") }
-    var otpSent by remember { mutableStateOf(false) }
+    val sentEmail by actualViewModel?.otpEmail?.collectAsState() ?: remember { mutableStateOf<String?>(null) }
+    val otpSent = sentEmail == email.trim().lowercase()
+    val busy by actualViewModel?.busy?.collectAsState() ?: remember { mutableStateOf(false) }
+    val resendSeconds by actualViewModel?.resendSeconds?.collectAsState() ?: remember { mutableStateOf(0) }
+    val session by actualViewModel?.session?.collectAsState() ?: remember { mutableStateOf<com.healinghands4u.auth.AuthSession?>(null) }
     
     val loginSuccess by actualViewModel?.loginState?.collectAsState() ?: remember { mutableStateOf(false) }
     val errorMessage by actualViewModel?.errorMessage?.collectAsState() ?: remember { mutableStateOf<String?>(null) }
@@ -108,6 +112,18 @@ fun LoginScreen(
 
 
     val scrollState = rememberScrollState()
+
+    if (session != null && session?.user?.authProvider != "guest") {
+        Column(modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Text("Your account", style = MaterialTheme.typography.headlineMedium)
+            Text(session?.user?.displayName.orEmpty())
+            Text(session?.user?.email.orEmpty())
+            Button(onClick = onLoginSuccess, enabled = !busy) { Text("Continue to assistant") }
+            OutlinedButton(onClick = { actualViewModel?.signOut(context) }, enabled = !busy) { Text("Sign out") }
+            if (busy) androidx.compose.material3.LinearProgressIndicator(Modifier.fillMaxWidth())
+        }
+        return
+    }
 
     Surface(
         modifier = modifier.fillMaxSize(),
@@ -167,6 +183,7 @@ fun LoginScreen(
             Spacer(modifier = Modifier.height(32.dp))
 
             // Option 1: Email OTP Authentication
+            if (busy) androidx.compose.material3.LinearProgressIndicator(Modifier.fillMaxWidth())
             ElevatedCard(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -191,7 +208,8 @@ fun LoginScreen(
 
                     OutlinedTextField(
                         value = email,
-                        onValueChange = { email = it },
+                        onValueChange = { email = it; otp = "" },
+                        enabled = !busy,
                         modifier = Modifier
                             .fillMaxWidth()
                             .testTag(TestTags.LOGIN_EMAIL_INPUT),
@@ -209,10 +227,11 @@ fun LoginScreen(
                     Button(
                         onClick = {
                             if (email.isNotBlank()) {
-                                otpSent = true
+                                actualViewModel?.requestOtp(email)
                                 onOtpRequested(email)
                             }
                         },
+                        enabled = !busy && resendSeconds == 0 && email.isNotBlank(),
                         modifier = Modifier
                             .fillMaxWidth()
                             .testTag(TestTags.LOGIN_SEND_OTP_BUTTON),
@@ -220,7 +239,7 @@ fun LoginScreen(
                     ) {
                         Icon(imageVector = Icons.Default.Send, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text(if (otpSent) "Resend OTP" else "Send OTP")
+                        Text(if (resendSeconds > 0) "Resend in ${resendSeconds}s" else if (otpSent) "Resend OTP" else "Send OTP")
                     }
 
                     if (otpSent || otp.isNotEmpty()) {
@@ -228,7 +247,8 @@ fun LoginScreen(
 
                         OutlinedTextField(
                             value = otp,
-                            onValueChange = { otp = it },
+                            onValueChange = { otp = it.filter { c -> c in '0'..'9' }.take(6) },
+                            enabled = !busy,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .testTag(TestTags.LOGIN_OTP_INPUT),
@@ -250,6 +270,7 @@ fun LoginScreen(
                                     onOtpVerified(email, otp)
                                 }
                             },
+                            enabled = !busy && otp.length == 6,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .testTag(TestTags.LOGIN_VERIFY_OTP_BUTTON),
@@ -287,7 +308,8 @@ fun LoginScreen(
                     .testTag(TestTags.AUTH_OPTION_GOOGLE)
             ) {
                 OutlinedButton(
-                    onClick = onGoogleClick,
+                    onClick = { actualViewModel?.googleSignIn(context); onGoogleClick() },
+                    enabled = !busy,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(50.dp)
@@ -311,13 +333,9 @@ fun LoginScreen(
             ) {
                 OutlinedButton(
                     onClick = {
-                        onGuestClick()
-                        try {
-                            actualViewModel?.loginAnonymously()
-                        } catch (e: Throwable) {
-                            // Handled safely
-                        }
+                        if (actualViewModel != null) actualViewModel.loginAnonymously() else onGuestClick()
                     },
+                    enabled = !busy,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(50.dp)

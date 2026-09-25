@@ -15,17 +15,31 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
+    @Provides
+    fun provideSessionStorage(store: com.healinghands4u.auth.SessionStore): com.healinghands4u.auth.AuthSessionStorage = store
 
     @Provides
     @Singleton
-    fun provideOkHttpClient(): OkHttpClient {
+    fun provideOkHttpClient(sessionStore: com.healinghands4u.auth.SessionStore): OkHttpClient {
         return OkHttpClient.Builder()
+            .addInterceptor { chain ->
+                val original = chain.request()
+                val path = original.url.encodedPath
+                val publicAuth = path.startsWith("/api/auth/") && path !in listOf("/api/auth/me", "/api/auth/logout")
+                val token = if (publicAuth) null else sessionStore.token()
+                val request = original.newBuilder().apply {
+                    if (token != null) header("Authorization", "Bearer $token")
+                }.build()
+                chain.proceed(request).also {
+                    if (it.code == 401 && token != null) sessionStore.clearIfToken(token)
+                }
+            }
             // Fail over to the downloaded knowledge base instead of leaving the
             // consultation spinner waiting for a full minute on a stalled request.
-            .connectTimeout(10, TimeUnit.SECONDS)
-            .readTimeout(20, TimeUnit.SECONDS)
-            .writeTimeout(20, TimeUnit.SECONDS)
-            .callTimeout(25, TimeUnit.SECONDS)
+            .connectTimeout(40, TimeUnit.SECONDS)
+            .readTimeout(40, TimeUnit.SECONDS)
+            .writeTimeout(40, TimeUnit.SECONDS)
+            .callTimeout(40, TimeUnit.SECONDS)
             .build()
     }
 
@@ -44,6 +58,11 @@ object NetworkModule {
     fun provideSyncService(retrofit: Retrofit): SyncService {
         return retrofit.create(SyncService::class.java)
     }
+
+    @Provides
+    @Singleton
+    fun provideAuthApi(retrofit: Retrofit): com.healinghands4u.auth.AuthApi =
+        retrofit.create(com.healinghands4u.auth.AuthApi::class.java)
 
     @Provides
     @Singleton

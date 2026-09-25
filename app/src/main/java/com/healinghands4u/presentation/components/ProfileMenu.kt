@@ -16,21 +16,20 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import com.google.firebase.auth.FirebaseAuth
+import androidx.compose.runtime.collectAsState
+import androidx.compose.ui.platform.LocalContext
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.healinghands4u.presentation.auth.AuthViewModel
 import com.healinghands4u.presentation.theme.ThemeState
 import com.healinghands4u.presentation.theme.trustedTealColors
 
 @Composable
-fun ProfileMenu() {
+fun ProfileMenu(viewModel: AuthViewModel = hiltViewModel()) {
     var expanded by remember { mutableStateOf(false) }
-    val currentUser = remember {
-        try {
-            FirebaseAuth.getInstance().currentUser
-        } catch (e: Throwable) {
-            null
-        }
-    }
-    val isAnonymous = currentUser?.isAnonymous == true
+    val session by viewModel.session.collectAsState()
+    val currentUser = session?.user
+    val context = LocalContext.current
+    val isAnonymous = currentUser?.authProvider == "guest"
     val isLoggedIn = currentUser != null
 
     val tokens = MaterialTheme.trustedTealColors
@@ -47,7 +46,7 @@ fun ProfileMenu() {
                 text = {
                     Text(
                         text = if (isLoggedIn && !isAnonymous) {
-                            "Logged in via Firebase"
+                            currentUser?.email ?: currentUser?.displayName.orEmpty()
                         } else {
                             "Logged in as Guest"
                         }
@@ -57,6 +56,12 @@ fun ProfileMenu() {
             )
 
             Divider()
+            if (isLoggedIn) {
+                DropdownMenuItem(text = { Text("Sign out") }, onClick = {
+                    viewModel.signOut(context)
+                    expanded = false
+                })
+            }
             val systemDark = isSystemInDarkTheme()
             val currentDark = ThemeState.isDarkTheme.value ?: systemDark
             DropdownMenuItem(

@@ -1,73 +1,106 @@
 package com.healinghands4u.presentation.auth
 
-import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.healinghands4u.auth.FirebaseAuthManager
+import com.healinghands4u.auth.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.test.StandardTestDispatcher
-import kotlinx.coroutines.test.advanceUntilIdle
-import kotlinx.coroutines.test.resetMain
-import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.test.setMain
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.test.*
 import org.junit.After
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
+import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test
-import org.junit.runner.RunWith
-import org.robolectric.annotation.Config
+import java.io.IOException
 
 @OptIn(ExperimentalCoroutinesApi::class)
-@RunWith(AndroidJUnit4::class)
-@Config(sdk = [34])
 class AuthViewModelTest {
+    private val dispatcher = StandardTestDispatcher()
+    private val store = FakeStore()
+    private val api = FakeApi()
+    private lateinit var vm: AuthViewModel
+    @Before fun before() { Dispatchers.setMain(dispatcher); vm = AuthViewModel(api, store) }
+    @After fun after() { Dispatchers.resetMain() }
 
-    private val testDispatcher = StandardTestDispatcher()
-    private lateinit var authManager: FirebaseAuthManager
-    private lateinit var viewModel: AuthViewModel
-
-    @Before
-    fun setUp() {
-        Dispatchers.setMain(testDispatcher)
-        authManager = FirebaseAuthManager()
-        // ViewModel instantiation must not throw even if Firebase is uninitialized
-        viewModel = AuthViewModel(authManager)
-    }
-
-    @After
-    fun tearDown() {
-        Dispatchers.resetMain()
-    }
-
-    @Test
-    fun init_withUninitializedFirebase_doesNotCrashAndRemainsUnauthenticated() {
-        assertFalse("Initial loginState should be false", viewModel.loginState.value)
-        assertFalse("Initial isGuestMode should be false", viewModel.isGuestMode.value)
-        assertNull("Initial errorMessage should be null", viewModel.errorMessage.value)
-    }
-
-    @Test
-    fun loginAnonymously_gracefulFallbackToGuestMode() = runTest(testDispatcher) {
-        viewModel.loginAnonymously()
+    @Test fun enteringDigitsWithoutRequestCannotSignIn() = runTest(dispatcher) {
+        vm.verifyOtp("person@example.com", "123456")
         advanceUntilIdle()
-
-        assertTrue("isGuestMode should be true after anonymous login", viewModel.isGuestMode.value)
-        assertTrue("loginState should be true after anonymous login fallback", viewModel.loginState.value)
-        assertNull("No error message should be displayed to guest user", viewModel.errorMessage.value)
+        assertFalse(vm.loginState.value)
+        assertEquals(0, api.verifications)
+        assertNull(store.session.value)
     }
-
-    @Test
-    fun verifyOtp_setsLoginStateTrue() = runTest(testDispatcher) {
-        viewModel.verifyOtp("test@example.com", "123456")
+    @Test fun failedDeliveryDoesNotShowOtpAsSent() = runTest(dispatcher) {
+        api.deliveryFailure = true
+        vm.requestOtp("person@example.com")
         advanceUntilIdle()
-
-        assertTrue("loginState should be true after OTP verify", viewModel.loginState.value)
+        assertNull(vm.otpEmail.value)
+        assertFalse(vm.loginState.value)
+        assertNotNull(vm.errorMessage.value)
     }
-
-    @Test
-    fun clearError_resetsErrorMessage() {
-        viewModel.clearError()
-        assertNull(viewModel.errorMessage.value)
+    @Test fun rejectedOtpNeverCreatesSessionOrNavigates() = runTest(dispatcher) {
+        vm.requestOtp("person@example.com")
+        advanceUntilIdle()
+        api.response = AuthResponse(success = false, message = "Invalid OTP")
+        vm.verifyOtp("person@example.com", "123456")
+        advanceUntilIdle()
+        assertEquals(1, api.verifications)
+        assertFalse(vm.loginState.value)
+        assertNull(store.session.value)
+    }
+    @Test fun changedEmailRequiresNewCode() = runTest(dispatcher) {
+        vm.requestOtp("person@example.com")
+        advanceUntilIdle()
+        vm.verifyOtp("different@example.com", "123456")
+        advanceUntilIdle()
+        assertEquals(0, api.verifications)
+        assertFalse(vm.loginState.value)
+    }
+    @Test fun incompleteServerSessionIsRejected() = runTest(dispatcher) {
+        vm.requestOtp("person@example.com")
+        advanceUntilIdle()
+        api.response = AuthResponse(success = true, token = "token")
+        vm.verifyOtp("person@example.com", "123456")
+        advanceUntilIdle()
+        assertNull(store.session.value)
+        assertFalse(vm.loginState.value)
+    }
+    @Test fun repeatedTapDoesNotSendTwoRequests() = runTest(dispatcher) {
+        vm.requestOtp("person@example.com")
+        vm.requestOtp("person@example.com")
+        advanceUntilIdle()
+        assertEquals(1, api.requests)
+    }
+    @Test fun successfulOtpPersistsBackendIdentityBeforeNavigation() = runTest(dispatcher) {
+        vm.requestOtp("person@example.com")
+        advanceUntilIdle()
+        vm.verifyOtp("person@example.com", "123456")
+        // IO persistence runs outside the test scheduler; wait for completion through the state.
+        while (vm.busy.value) { testScheduler.runCurrent(); kotlinx.coroutines.yield() }
+        assertTrue(vm.loginState.value)
+        assertEquals("backend-token", store.session.value?.token)
+        assertEquals("user-1", store.session.value?.user?.id)
+    }
+    private class FakeStore : AuthSessionStorage {
+        override val session = MutableStateFlow<AuthSession?>(null)
+        override fun token() = session.value?.token
+        override fun clear() { session.value = null }
+        override fun save(response: AuthResponse) {
+            session.value = AuthSession(response.token!!, response.expiresAt!!, response.user!!)
+        }
+    }
+    private class FakeApi : AuthApi {
+        var requests = 0
+        var verifications = 0
+        var deliveryFailure = false
+        var response = AuthResponse(true, token = "backend-token", expiresAt = Long.MAX_VALUE,
+            user = AuthUser("user-1", "person@example.com", "Person", "email_otp"))
+        override suspend fun requestOtp(body: Map<String, String>): AuthResponse {
+            requests++
+            if (deliveryFailure) throw IOException("Offline")
+            return AuthResponse(true)
+        }
+        override suspend fun verifyOtp(body: Map<String, String>): AuthResponse { verifications++; return response }
+        override suspend fun google(body: Map<String, String>) = response
+        override suspend fun guest() = response
+        override suspend fun me() = response
+        override suspend fun logout() = AuthResponse(true)
     }
 }

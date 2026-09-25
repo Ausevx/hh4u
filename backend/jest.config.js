@@ -1,5 +1,6 @@
 /** @type {import('ts-jest').JestConfigWithTsJest} */
 process.env.USE_MOCK_AI = process.env.USE_MOCK_AI ?? 'true';
+process.env.JWT_SECRET = 'unit-test-only-secret-never-use-in-production-12345';
 
 module.exports = {
   preset: 'ts-jest',
