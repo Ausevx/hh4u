@@ -223,7 +223,7 @@ Only output valid JSON.`;
       fullPrompt += `\nClinical Knowledge Base Guidance:\n${JSON.stringify(context, null, 2)}\n`;
     }
     const targetLanguage = context?.targetLanguage ? context.targetLanguage : 'English';
-    fullPrompt += `\nProvide a clear, reassuring, and structured homeopathic recommendation incorporating the above clinical guidance. Include dosage and safety instructions where appropriate. IMPORTANT: You MUST generate your response in the following language: ${targetLanguage}.`;
+    fullPrompt += `\nYour task is simply to map the user's query to the provided clinical guidance. Briefly (in 1-2 sentences) acknowledge their specific problem, and then present the 'baseAnswer' exactly as provided in the guidance. Do NOT hallucinate long extra medical advice.\n\nCRITICAL INSTRUCTION: Do NOT use any markdown formatting (no hashes #, no asterisks **). Use plain text suitable for a standard mobile chat bubble with 1-2 friendly emojis.\n\nIMPORTANT: You MUST generate your response in the following language: ${targetLanguage}.`;
 
     try {
       const response = await this.generateContentWithFallback({
@@ -280,7 +280,7 @@ Standard Template Answer: "${params.templateText}"
 User Language Preference: ${params.userLanguage || 'English'}
 Additional Context: ${JSON.stringify(params.additionalContext || {})}
 
-Ensure the response begins with "Personalized Homeopathic Plan" and is compassionate, medically safe (include a disclaimer if necessary), and accurately reflects the standard template advice in the requested language.
+Your task is simply to map the user's specific context to the provided 'Standard Template Answer'. Briefly (in 1-2 sentences) acknowledge their symptoms, and then present the template answer exactly as provided. Do NOT hallucinate long extra medical advice.
 
 CRITICAL INSTRUCTION: Do NOT use any markdown formatting (no hashes, no asterisks for bolding). Use plain text suitable for a standard mobile chat bubble. Keep the response very concise (max 3 sentences) and include 1 or 2 friendly emojis.`;
 

@@ -99,7 +99,7 @@ fun AppNavHost(
                 onSendQuery = { query, isConsultation ->
                     val encoded = java.net.URLEncoder.encode(query, "UTF-8")
                     if (isConsultation) {
-                        navController.navigate(Screen.Consultation.route)
+                        navController.navigate("${Screen.Consultation.route}?query=$encoded")
                     } else {
                         navController.navigate("${Screen.ChatbotAnswer.route}?query=$encoded")
                     }
@@ -111,16 +111,23 @@ fun AppNavHost(
             ClinicPlaceholderScreen()
         }
 
-        composable(Screen.Consultation.route) {
+        composable(
+            route = "${Screen.Consultation.route}?query={query}",
+            arguments = listOf(navArgument("query") {
+                defaultValue = ""
+                type = NavType.StringType
+            })
+        ) { backStackEntry ->
+            val query = backStackEntry.arguments?.getString("query") ?: ""
+            val decodedQuery = try {
+                java.net.URLDecoder.decode(query, "UTF-8")
+            } catch (e: Exception) {
+                query
+            }
             ConsultationScreen(
-                questionText = "Are you experiencing a burning sensation?",
+                queryText = decodedQuery,
                 onBackClick = {
                     navController.popBackStack()
-                },
-                onAnswerSelected = { _ ->
-                    navController.navigate("${Screen.ChatbotAnswer.route}?query=burning%20sensation") {
-                        popUpTo(Screen.ChatbotQuery.route) { inclusive = false }
-                    }
                 }
             )
         }
