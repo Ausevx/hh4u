@@ -3,7 +3,7 @@
  * Configurable via environment variables with production homeopathic defaults.
  */
 
-export const DEFAULT_MATCH_CONFIDENCE_THRESHOLD = 0.85;
+export const DEFAULT_MATCH_CONFIDENCE_THRESHOLD = 0.75;
 export const DEFAULT_TOP_CANDIDATES_COUNT = 5;
 export const DEFAULT_FALLBACK_MESSAGE =
   'We could not find a confident match for your query. Our medical team has been notified to review this question. You may also consult Dr. Anjali Jariwala directly at Healing Hands4U clinic.';

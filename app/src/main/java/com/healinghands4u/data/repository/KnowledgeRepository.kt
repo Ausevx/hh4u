@@ -31,4 +31,17 @@ class KnowledgeRepository @Inject constructor(
         val all = diseaseDao.getAllDiseases()
         return all.findSimilar(queryEmbedding)
     }
+
+    suspend fun searchDiseaseByKeyword(query: String): DiseaseEntity? {
+        val keywords = query.split(Regex("\\s+")).filter { it.length > 3 }
+        if (keywords.isEmpty()) return null
+        
+        for (kw in keywords) {
+            val results = diseaseDao.searchByKeyword(kw)
+            if (results.isNotEmpty()) {
+                return results.first() // Return the first match found for any significant keyword
+            }
+        }
+        return null
+    }
 }

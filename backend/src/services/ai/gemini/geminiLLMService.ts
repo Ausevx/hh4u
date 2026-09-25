@@ -17,45 +17,110 @@ export class GeminiLLMService implements ILLMService {
       return this.responseCache.get(cacheKey);
     }
 
-    const candidateModels = [
-      this.model,
-      'gemini-3.5-flash',
-      'gemini-flash-latest',
-      'gemini-3.5-flash-8b',
-    ].filter((m, i, arr) => m && arr.indexOf(m) === i);
+    // Simplified: try primary model, then one fallback. No exponential backoff cascade.
+    const modelsToTry = [this.model, 'gemini-3.5-flash'].filter((m, i, arr) => arr.indexOf(m) === i);
 
     let lastError: any;
-    for (let attempt = 0; attempt < 3; attempt++) {
-      for (const model of candidateModels) {
-        try {
-          const response = await this.ai.models.generateContent({
-            model,
-            contents: params.contents,
-            config: {
-    ...params.config,
-    safetySettings: [
-      { category: 'HARM_CATEGORY_DANGEROUS_CONTENT' as any, threshold: 'BLOCK_NONE' as any },
-      { category: 'HARM_CATEGORY_HARASSMENT' as any, threshold: 'BLOCK_NONE' as any },
-      { category: 'HARM_CATEGORY_HATE_SPEECH' as any, threshold: 'BLOCK_NONE' as any },
-      { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT' as any, threshold: 'BLOCK_NONE' as any }
-    ]
-  },
-          });
-          this.responseCache.set(cacheKey, response);
-          return response;
-        } catch (err: any) {
-          lastError = err;
-          console.warn(`[GeminiLLMService] Model ${model} failed (${err.message}).`);
-          if (err.status === 403 || err.status === 429 || err.status === 400 || (err.message && err.message.includes('429'))) {
-             throw err; // Do not retry on permanent or quota errors
-          }
+    for (const model of modelsToTry) {
+      try {
+        const response = await this.ai.models.generateContent({
+          model,
+          contents: params.contents,
+          config: {
+            ...params.config,
+            safetySettings: [
+              { category: 'HARM_CATEGORY_DANGEROUS_CONTENT' as any, threshold: 'BLOCK_NONE' as any },
+              { category: 'HARM_CATEGORY_HARASSMENT' as any, threshold: 'BLOCK_NONE' as any },
+              { category: 'HARM_CATEGORY_HATE_SPEECH' as any, threshold: 'BLOCK_NONE' as any },
+              { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT' as any, threshold: 'BLOCK_NONE' as any }
+            ]
+          },
+        });
+        this.responseCache.set(cacheKey, response);
+        return response;
+      } catch (err: any) {
+        lastError = err;
+        console.warn(`[GeminiLLMService] Model ${model} failed (${err.message}).`);
+        if (err.status === 403 || err.status === 429 || err.status === 400 || (err.message && err.message.includes('429'))) {
+           throw err; // Do not retry on permanent or quota errors
         }
-      }
-      if (attempt < 2) {
-        await new Promise((resolve) => setTimeout(resolve, 2000 * Math.pow(2, attempt)));
       }
     }
     throw lastError;
+  }
+
+  /**
+   * Helper: quickly detect if text is likely English (ASCII-dominant).
+   * Avoids wasting an API call on translation for English queries.
+   */
+  private isLikelyEnglish(text: string): boolean {
+    const asciiChars = text.replace(/[^a-zA-Z0-9\s.,!?'"()-]/g, '');
+    return asciiChars.length / text.length > 0.9;
+  }
+
+  /**
+   * Combined intent classification + translation in ONE Gemini API call.
+   * Saves 1 API call per query (merges classifyIntent + translateToEnglish).
+   */
+  async classifyAndTranslate(text: string, sourceLanguage?: string): Promise<{
+    intent: 'MEDICAL' | 'GREETING' | 'CHITCHAT' | 'UNCLEAR';
+    translatedText: string;
+    detectedLanguage: string;
+  }> {
+    // Fast path: pure regex for common greetings — zero API calls
+    const trimmed = text.trim().toLowerCase();
+    if (/^(hi|hello|hey|yo|greetings|good morning|good afternoon|good evening|sup|what\'s up|whats up)[!?]*$/.test(trimmed)) {
+      return { intent: 'GREETING', translatedText: text, detectedLanguage: 'en' };
+    }
+
+    // If text is clearly English, skip translation part of the prompt
+    const likelyEnglish = this.isLikelyEnglish(text);
+
+    const prompt = likelyEnglish
+      ? `Classify this user message into exactly one category:
+- "MEDICAL": health/symptoms/diseases/treatments/remedies question
+- "GREETING": hello/hi/hey greeting
+- "CHITCHAT": casual non-health conversation
+- "UNCLEAR": too vague to determine
+
+User message: "${text}"
+
+Respond with JSON: {"intent": "<category>", "translatedText": "${text}", "detectedLanguage": "en"}`
+      : `Do TWO tasks for this user message:
+1. Classify intent into: "MEDICAL", "GREETING", "CHITCHAT", or "UNCLEAR"
+2. Translate the text to English (if already English, keep as-is)
+
+Source language hint: ${sourceLanguage || 'Auto-detect'}
+User message: "${text}"
+
+Respond with JSON: {"intent": "<category>", "translatedText": "<english translation>", "detectedLanguage": "<detected language code>"}`;
+
+    try {
+      const response = await this.generateContentWithFallback({
+        contents: prompt,
+        config: { responseMimeType: 'application/json' }
+      });
+
+      const responseText = response.text || '{}';
+      const data = JSON.parse(responseText);
+      const intent = (data.intent || 'UNCLEAR').toUpperCase();
+      const validIntents = ['MEDICAL', 'GREETING', 'CHITCHAT', 'UNCLEAR'];
+
+      let detectedLanguage = data.detectedLanguage || 'en';
+      const langLower = detectedLanguage.toLowerCase();
+      if (langLower.includes('hindi') || langLower === 'hi') detectedLanguage = 'hi';
+      else if (langLower.includes('english') || langLower === 'en') detectedLanguage = 'en';
+      else if (langLower.includes('spanish') || langLower === 'es') detectedLanguage = 'es';
+
+      return {
+        intent: validIntents.includes(intent) ? intent as any : 'UNCLEAR',
+        translatedText: data.translatedText || text,
+        detectedLanguage,
+      };
+    } catch (e) {
+      console.warn('[GeminiLLMService] classifyAndTranslate failed, defaulting to MEDICAL with original text', e);
+      return { intent: 'MEDICAL', translatedText: text, detectedLanguage: sourceLanguage || 'en' };
+    }
   }
 
   
@@ -158,7 +223,7 @@ Only output valid JSON.`;
       fullPrompt += `\nClinical Knowledge Base Guidance:\n${JSON.stringify(context, null, 2)}\n`;
     }
     const targetLanguage = context?.targetLanguage ? context.targetLanguage : 'English';
-    fullPrompt += `\nProvide a clear, reassuring, and structured homeopathic recommendation incorporating the above clinical guidance. Include dosage and safety instructions where appropriate. IMPORTANT: You MUST generate your response in the following language: ${targetLanguage}.`;
+    fullPrompt += `\nYour task is simply to map the user's query to the provided clinical guidance. Briefly (in 1-2 sentences) acknowledge their specific problem, and then present the 'baseAnswer' exactly as provided in the guidance. Do NOT hallucinate long extra medical advice.\n\nCRITICAL INSTRUCTION: Do NOT use any markdown formatting (no hashes #, no asterisks **). Use plain text suitable for a standard mobile chat bubble with 1-2 friendly emojis.\n\nIMPORTANT: You MUST generate your response in the following language: ${targetLanguage}.`;
 
     try {
       const response = await this.generateContentWithFallback({
@@ -191,7 +256,9 @@ This message doesn't appear to be a specific health question. Respond naturally 
 
 IMPORTANT: You MUST write your response in the following language: ${targetLanguage}.
 
-Respond directly (no JSON, no formatting):`;
+Respond directly (no JSON, no formatting):
+
+CRITICAL INSTRUCTION: Do NOT use any markdown formatting (no hashes #, no asterisks ** for bolding, no bullet points). Use plain text suitable for a standard mobile chat bubble. Keep the response very concise (max 3 sentences) and include 1 or 2 friendly emojis.`;
 
     try {
       const response = await this.generateContentWithFallback({
@@ -213,7 +280,7 @@ Standard Template Answer: "${params.templateText}"
 User Language Preference: ${params.userLanguage || 'English'}
 Additional Context: ${JSON.stringify(params.additionalContext || {})}
 
-Ensure the response begins with "Personalized Homeopathic Plan" and is compassionate, medically safe (include a disclaimer if necessary), and accurately reflects the standard template advice in the requested language.
+Your task is simply to map the user's specific context to the provided 'Standard Template Answer'. Briefly (in 1-2 sentences) acknowledge their symptoms, and then present the template answer exactly as provided. Do NOT hallucinate long extra medical advice.
 
 CRITICAL INSTRUCTION: Do NOT use any markdown formatting (no hashes, no asterisks for bolding). Use plain text suitable for a standard mobile chat bubble. Keep the response very concise (max 3 sentences) and include 1 or 2 friendly emojis.`;
 

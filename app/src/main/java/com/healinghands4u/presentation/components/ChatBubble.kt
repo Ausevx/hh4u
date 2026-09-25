@@ -55,7 +55,7 @@ fun ChatBubble(
             ) {
                 Box(modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
                     Text(
-                        text = message,
+                        text = message.replace(Regex("\\*\\*|\\*"), "").replace(Regex("^#+\\s*", RegexOption.MULTILINE), ""),
                         style = MaterialTheme.typography.bodyLarge.copy(fontSize = 15.sp),
                         color = textColor
                     )

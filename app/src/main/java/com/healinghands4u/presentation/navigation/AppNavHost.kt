@@ -113,10 +113,19 @@ fun AppNavHost(
 
         composable(
             route = "${Screen.Consultation.route}?query={query}",
-            arguments = listOf(navArgument("query") { defaultValue = ""; type = NavType.StringType })
-        ) { entry ->
+            arguments = listOf(navArgument("query") {
+                defaultValue = ""
+                type = NavType.StringType
+            })
+        ) { backStackEntry ->
+            val query = backStackEntry.arguments?.getString("query") ?: ""
+            val decodedQuery = try {
+                java.net.URLDecoder.decode(query, "UTF-8")
+            } catch (e: Exception) {
+                query
+            }
             ConsultationRoute(
-                query = entry.arguments?.getString("query").orEmpty(),
+                query = decodedQuery,
                 onBackClick = { navController.popBackStack() }
             )
         }

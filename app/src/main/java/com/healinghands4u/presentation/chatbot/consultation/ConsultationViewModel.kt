@@ -28,6 +28,7 @@ data class ConsultationUiState(
     val error: String? = null
 )
 
+
 @HiltViewModel
 class ConsultationViewModel @Inject constructor(
     private val repository: ConsultationDataSource,

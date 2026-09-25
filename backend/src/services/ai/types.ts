@@ -23,6 +23,16 @@ export interface ILLMService {
   classifyIntent?(text: string): Promise<'MEDICAL' | 'GREETING' | 'CHITCHAT' | 'UNCLEAR'>;
 
   /**
+   * Combined intent classification + translation in a single LLM call.
+   * Saves 1 API call per query by merging two sequential steps.
+   */
+  classifyAndTranslate?(text: string, sourceLanguage?: string): Promise<{
+    intent: 'MEDICAL' | 'GREETING' | 'CHITCHAT' | 'UNCLEAR';
+    translatedText: string;
+    detectedLanguage: string;
+  }>;
+
+  /**
    * Generates a standard answer or summary from a prompt and context.
    */
   generateAnswer(prompt: string, context?: Record<string, any>): Promise<string>;

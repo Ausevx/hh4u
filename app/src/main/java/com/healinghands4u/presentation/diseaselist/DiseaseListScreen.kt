@@ -73,6 +73,7 @@ private object DefaultDiseaseDao : com.healinghands4u.data.local.DiseaseDao {
         }
     override suspend fun insertAll(diseases: List<DiseaseEntity>) {}
     override suspend fun clearAll() {}
+    override suspend fun searchByKeyword(keyword: String): List<DiseaseEntity> = emptyList()
 }
 
 private object DefaultSyncService : com.healinghands4u.data.remote.SyncService {
