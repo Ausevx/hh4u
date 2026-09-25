@@ -1,0 +1,19 @@
+name: Keep Railway Server Alive
+
+on:
+  schedule:
+    # Runs every 10 minutes
+    - cron: "*/10 * * * *"
+  workflow_dispatch: # Allows manual triggering from the GitHub Actions tab
+
+jobs:
+  ping-server:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Guest Auth Endpoint
+        run: |
+          curl -X POST https://hh4u-production.up.railway.app/api/auth/guest \
+          -H "Content-Type: application/json" \
+          --max-time 10
+          
+          echo "Server pinged successfully!"
