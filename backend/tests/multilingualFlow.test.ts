@@ -93,6 +93,21 @@ describe('English database search with localized consultation and direct answers
     expect(llm.translateFields).not.toHaveBeenCalled();
   });
 
+  it('returns the exact current English database text without any language model calls', async () => {
+    const text = 'Saved advice.\n\nSecond paragraph.\nhttps://youtu.be/abcdefghijk';
+    (Answer.findOne as jest.Mock).mockResolvedValueOnce({ ...sourceAnswer, answerText: text });
+    const service = new ChatbotService();
+    const first = await service.processQuery({ queryText: 'I have a headache', intent: 'direct_answer' });
+    const second = await service.processQuery({ queryText: 'I have a headache', intent: 'direct_answer' });
+    expect(first.answer?.answerText).toBe(text);
+    expect(second.answer?.answerText).toBe(sourceAnswer.answerText);
+    expect(first.language).toBe('en');
+    expect(embedding.generateEmbedding).toHaveBeenCalledWith('I have a headache');
+    expect(llm.classifyAndTranslate).not.toHaveBeenCalled();
+    expect(llm.translateFields).not.toHaveBeenCalled();
+    expect(llm.generateAnswer).not.toHaveBeenCalled();
+  });
+
   it('never embeds untranslated text when language detection fails', async () => {
     llm.classifyAndTranslate.mockRejectedValue(new Error('Translation unavailable'));
     await expect(new ChatbotService().processQuery({ queryText: 'pet dard', intent: 'consultation' })).rejects.toThrow('Translation unavailable');

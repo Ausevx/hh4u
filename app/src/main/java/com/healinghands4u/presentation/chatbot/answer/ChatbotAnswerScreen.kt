@@ -133,7 +133,7 @@ fun ChatbotAnswerScreen(
                     verticalArrangement = Arrangement.Top,
                     horizontalAlignment = Alignment.Start
                 ) {
-                    Text("Consulting Dr. AI...", color = tokens.inkDim, style = MaterialTheme.typography.bodySmall)
+                    Text("Finding saved advice…", color = tokens.inkDim, style = MaterialTheme.typography.bodySmall)
                     Spacer(modifier = Modifier.height(16.dp))
                     
                     // Skeleton Chat Bubble
@@ -174,7 +174,8 @@ fun ChatbotAnswerScreen(
             }
             is ChatbotUiState.Success -> {
                 ChatbotAnswerContent(
-                    queryText = query,
+                    queryText = state.queryText ?: query,
+                    notice = state.notice,
                     headerMessage = state.answerText,
                     answerText = state.answerText,
                     remedyName = state.remedyName,
@@ -237,7 +238,8 @@ fun ChatbotAnswerContent(
     homeRemedy: String?,
     safetyDisclaimer: String?,
     videoUrl: String?,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    notice: String? = null
 ) {
     val scrollState = rememberScrollState()
 
@@ -258,32 +260,11 @@ fun ChatbotAnswerContent(
             Spacer(modifier = Modifier.height(12.dp))
         }
 
-        // AI answer explanation
-        if (!headerMessage.isNullOrBlank()) {
-            ChatBubble(
-                message = headerMessage,
-                isUser = false,
-                timestamp = "Just now"
-            )
-            Spacer(modifier = Modifier.height(16.dp))
+        if (notice != null) {
+            Text(notice, style = MaterialTheme.typography.bodySmall)
+            Spacer(modifier = Modifier.height(12.dp))
         }
-
-        // Prescription card
-        val hasPrescription = dosage != null || homeRemedy != null || (answerText.length < 50 && headerMessage != answerText)
-        if (hasPrescription) {
-            RxCard(
-                remedyName = remedyName ?: "Personalized Remedy",
-                dosage = dosage ?: "As advised by your homeopathic physician",
-                homeRemedy = homeRemedy,
-                safetyDisclaimer = safetyDisclaimer ?: "If disease does not cure within 2 days then consult doctor right now"
-            )
-        }
-
-        // Inline YouTube video player
-        if (!videoUrl.isNullOrBlank()) {
-            Spacer(modifier = Modifier.height(16.dp))
-            YouTubePlayer(videoUrl = videoUrl)
-        }
+        com.healinghands4u.presentation.components.PracticalAdvice(answerText, videoUrl)
 
         Spacer(modifier = Modifier.height(24.dp))
 

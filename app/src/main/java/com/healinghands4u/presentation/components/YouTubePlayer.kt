@@ -74,7 +74,7 @@ fun YouTubePlayer(
         return
     }
 
-    var playing by remember { mutableStateOf(false) }
+    var playing by remember(videoId) { mutableStateOf(false) }
     val thumbnailUrl = "https://img.youtube.com/vi/$videoId/hqdefault.jpg"
 
     Card(
@@ -100,7 +100,7 @@ fun YouTubePlayer(
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
-                    text = "Watch: Remedy Application Guide",
+                    text = "Video",
                     style = MaterialTheme.typography.labelMedium.copy(
                         fontFamily = SoraFontFamily,
                         fontWeight = FontWeight.SemiBold,
@@ -249,6 +249,7 @@ private fun YouTubeWebView(videoId: String) {
                 )
             }
         },
+        onRelease = { view -> view.stopLoading(); view.loadUrl("about:blank"); view.destroy() },
         modifier = Modifier.fillMaxSize()
     )
 }

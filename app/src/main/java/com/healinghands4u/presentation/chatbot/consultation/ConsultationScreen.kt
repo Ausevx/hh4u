@@ -95,30 +95,8 @@ fun ConsultationScreen(
                     )
                 }
                 
-                val displayText = result.answer.personalizedAnswer?.takeIf { it.isNotBlank() }
-                    ?: result.answer.answerText ?: "Here is your personalized remedy."
-                
-                ChatBubble(
-                    message = displayText,
-                    isUser = false,
-                    timestamp = "Just now"
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-                
-                if (!result.answer.remedyName.isNullOrBlank() || !result.answer.dosageInstructions.isNullOrBlank() || !result.answer.homeRemedyText.isNullOrBlank()) {
-                    RxCard(
-                        remedyName = result.answer.remedyName ?: "See instructions",
-                        dosage = result.answer.dosageInstructions ?: "Follow general guidance",
-                        homeRemedy = result.answer.homeRemedyText,
-                        safetyDisclaimer = result.answer.safetyDisclaimerText ?: ""
-                    )
-                }
-
-                // Inline YouTube video if available
-                if (!result.answer.videoUrl.isNullOrBlank()) {
-                    Spacer(modifier = Modifier.height(16.dp))
-                    YouTubePlayer(videoUrl = result.answer.videoUrl!!)
-                }
+                com.healinghands4u.presentation.components.PracticalAdvice(
+                    answerText = result.answer.answerText.orEmpty(), videoUrl = result.answer.videoUrl)
             } else {
                 if (state.offlineEntry != null) {
                     Text(

@@ -8,6 +8,7 @@ import QueryClickStats from '../models/QueryClickStats';
 import Answer from '../models/Answer';
 import ConsultationQuery from '../models/ConsultationQuery';
 import { localizeFields, ANSWER_FIELDS } from './localizationService';
+import { isClearlyEnglish } from './englishQuery';
 
 export interface ProcessQueryInput {
   text?: string;
@@ -60,8 +61,6 @@ export interface ChatbotQueryResponse {
   language?: string;
 }
 
-const queryCache = new Map<string, { expiresAt: number; response: ChatbotQueryResponse }>();
-const CACHE_TTL_MS = 1000 * 60 * 60; // 1 hour
 
 export class ChatbotService {
   /**
@@ -111,25 +110,21 @@ export class ChatbotService {
       originalQueryText = (rawText as string).trim();
     }
 
-    if (inputMode === 'text' && input.intent === 'direct_answer' && originalQueryText) {
-      const cacheKey = originalQueryText.trim().toLowerCase();
-      const cached = queryCache.get(cacheKey);
-      if (cached && cached.expiresAt > Date.now()) {
-        console.log(`[ChatbotService] Cache hit`);
-        return cached.response;
-      }
-    }
     if (!originalQueryText) {
       throw new Error('Query text or voiceData is required');
     }
 
-    // Detect language and translate in one cached call. Do not infer English from
-    // Latin letters: romanized Indian languages use the same characters.
+    // Recognized English skips language detection. Uncertain wording uses a cached
+    // detection/translation call, including romanized Indian languages.
     let userIntent: 'MEDICAL' | 'GREETING' | 'CHITCHAT' | 'UNCLEAR';
     let translatedQueryText: string;
     let originalLanguage: string;
 
-    if (ai.llm.classifyAndTranslate) {
+    if (isClearlyEnglish(originalQueryText, detectedLang)) {
+      originalLanguage = 'en';
+      translatedQueryText = originalQueryText;
+      userIntent = /^(hi|hello|hey|thanks|thank you)[!.\s]*$/i.test(originalQueryText) ? 'GREETING' : 'MEDICAL';
+    } else if (ai.llm.classifyAndTranslate) {
       const result = await ai.llm.classifyAndTranslate(originalQueryText, detectedLang);
       userIntent = result.intent;
       translatedQueryText = result.translatedText || originalQueryText;
@@ -144,7 +139,9 @@ export class ChatbotService {
 
     if (userIntent === 'GREETING' || userIntent === 'CHITCHAT') {
       // Fast path: skip vector search entirely for casual chat
-      const fallbackText = await ai.llm.generateConversationalResponse(originalQueryText, originalLanguage);
+      const { message: fallbackText } = await localizeFields(ai.llm,
+        { message: 'Please describe your symptoms so I can look for saved advice from Dr. Anjali Jariwala.' },
+        originalLanguage, ['message']);
       const session = new ChatbotSession({
         userId: parsedUserId,
         originalQueryText,
@@ -256,16 +253,6 @@ export class ChatbotService {
           language: originalLanguage,
           matchCandidates,
         };
-        if (inputMode === 'text' && input.intent === 'direct_answer') {
-          queryCache.set(originalQueryText.toLowerCase().trim(), {
-            expiresAt: Date.now() + CACHE_TTL_MS,
-            response
-          });
-          // To prevent infinite growth
-          if (queryCache.size > 1000) {
-            queryCache.delete(queryCache.keys().next().value!);
-          }
-        }
         return response;
       }
 
@@ -346,14 +333,9 @@ export class ChatbotService {
     });
     needsReview.save().catch((e: any) => console.error('NeedsReview save error:', e));
 
-    // Use the conversational LLM to generate a friendly, human response.
-    let fallbackText: string;
-    try {
-      fallbackText = await ai.llm.generateConversationalResponse(originalQueryText, originalLanguage);
-    } catch (e) {
-      console.error("Conversational LLM failed, using minimal fallback", e);
-      fallbackText = "I am currently unable to process your request. Please try again later.";
-    }
+    const { message: fallbackText } = await localizeFields(ai.llm,
+      { message: 'No sufficiently close database answer was found. Please describe your symptoms more specifically or contact the clinic.' },
+      originalLanguage, ['message']);
 
     const response: ChatbotQueryResponse = {
       success: true,

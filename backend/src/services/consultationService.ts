@@ -35,7 +35,7 @@ export interface ConsultationResolutionResponse {
 export class ConsultationService {
   /**
    * Evaluates submitted diagnostic Yes/No answers against consultation answer branches,
-   * resolves the matching homeopathic answer, generates a personalized synthesized answer,
+   * resolves the matching saved answer and translates it only for non-English sessions,
    * and updates the session with answers and resolved answer ID.
    */
   public async resolveConsultationAnswer(input: ResolveConsultationInput): Promise<ConsultationResolutionResponse> {
@@ -181,9 +181,7 @@ export class ConsultationService {
       throw error;
     }
 
-    const templateText =
-      answerDoc?.answerText ||
-      `Clinical homeopathic evaluation and individualized guidance for query: "${session.originalQueryText}".`;
+    const templateText = answerDoc.answerText;
 
     // 8. Update ChatbotSession
     session.consultationAnswers = normalizedAnswers;
@@ -226,7 +224,7 @@ export class ConsultationService {
         ...localizedAnswer,
         personalizedAnswer: localizedAnswer.answerText,
       },
-      personalized: true,
+      personalized: false,
       language,
     };
   }

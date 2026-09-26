@@ -66,7 +66,8 @@ class OfflineBehaviorTest {
             vm.querySymptoms("headache")
             val result = withTimeout(5000) { vm.state.first { it is ChatbotUiState.Success || it is ChatbotUiState.Error } }
             assertTrue(result is ChatbotUiState.Success)
-            assertTrue((result as ChatbotUiState.Success).answerText.contains("Offline:"))
+            assertTrue((result as ChatbotUiState.Success).notice!!.contains("Offline:"))
+            assertEquals(repository.searchOffline("headache").first().answerText, result.answerText)
         } finally { Dispatchers.resetMain() }
     }
     @Test fun naturalEnglishSymptomsFindSavedTopics() = runBlocking {
