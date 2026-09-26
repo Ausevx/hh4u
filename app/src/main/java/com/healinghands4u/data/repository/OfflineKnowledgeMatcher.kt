@@ -17,7 +17,7 @@ fun KnowledgeBaseEntity.consultationData(): OfflineConsultationData = try {
 } catch (_: Exception) { OfflineConsultationData() }
 
 fun KnowledgeBaseEntity.directAnswer() = AnswerDto(
-    id = id, answerText = answerText ?: reasonText, remedyName = remedyText,
+    id = id, answerText = answerText ?: reasonText, remedyName = remedyText, reasonText = reasonText,
     dosageInstructions = dosageInstructions, homeRemedyText = homeRemedyText,
     safetyDisclaimerText = safetyDisclaimerText, videoUrl = videoUrl
 )

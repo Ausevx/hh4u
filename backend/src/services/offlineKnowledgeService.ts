@@ -12,7 +12,7 @@ export async function buildOfflineKnowledgeSnapshot() {
   ]);
   const byAnswerId = new Map(answers.map(a => [String(a._id), a]));
   const answerDto = (a: any) => a ? {
-    id: String(a._id), answerText: a.answerText,
+    id: String(a._id), answerText: a.answerText, reasonText: a.reasonText,
     remedyName: a.remedyText, dosageInstructions: a.dosageInstructions,
     homeRemedyText: a.homeRemedyText, safetyDisclaimerText: a.safetyDisclaimerText,
     videoUrl: a.videoUrl,

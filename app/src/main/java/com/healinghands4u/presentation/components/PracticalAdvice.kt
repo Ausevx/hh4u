@@ -44,30 +44,16 @@ private fun stripMarkdown(text: String): String {
 
 private fun cleanText(text: String): String = stripMarkdown(stripUrls(text))
 
-/**
- * Try to split answerText into reason + remedy parts.
- * The database stores answerText as: "reasonText\n\nremedyText"
- */
-private fun splitAnswerText(answerText: String): Pair<String?, String?> {
-    val parts = answerText.split(Regex("\\n\\n+"))
-    return when {
-        parts.size >= 3 -> {
-            // Assume format is [Greeting] \n\n [Reason] \n\n [Remedy] (and optionally more)
-            // Skip the greeting and take the next two parts
-            Pair(parts[1].trim(), parts.drop(2).joinToString("\n\n").trim())
-        }
-        parts.size == 2 -> {
-            // Assume format is [Reason] \n\n [Remedy]
-            if (parts[0].isNotBlank() && parts[1].isNotBlank()) {
-                Pair(parts[0].trim(), parts[1].trim())
-            } else {
-                Pair(null, null)
-            }
-        }
-        else -> Pair(null, null)
-    }
-}
+data class AdviceSections(val reason: String?, val remedy: String?, val unstructuredAnswer: String?)
 
+/** Only the dedicated database field identifies a clinical reason. Never guess from paragraphs. */
+fun adviceSections(answerText: String, reasonText: String?, homeRemedyText: String?): AdviceSections {
+    val reason = reasonText?.takeIf { it.isNotBlank() }
+    val remedy = homeRemedyText?.takeIf { it.isNotBlank() }
+    return AdviceSections(reason, remedy, answerText.takeIf {
+        it.isNotBlank() && (reason == null || remedy == null) && it != reason && it != remedy
+    })
+}
 @Composable
 fun PracticalAdvice(
     answerText: String,
@@ -78,13 +64,11 @@ fun PracticalAdvice(
 ) {
     val tokens = MaterialTheme.trustedTealColors
     val context = LocalContext.current
-    val videos = remember(answerText, videoUrl) { answerVideoLinks(answerText, videoUrl) }
+    val videos = remember(answerText, videoUrl, reasonText, homeRemedyText) { answerVideoLinks(listOfNotNull(answerText, reasonText, homeRemedyText).joinToString("\n"), videoUrl) }
 
-    // Use structured fields if available, otherwise try to parse from answerText
-    val (parsedReason, parsedRemedy) = remember(answerText) { splitAnswerText(answerText) }
-    val pathologyText = (reasonText?.takeIf { it.isNotBlank() } ?: parsedReason)?.let { cleanText(it) }
-    val remedyDisplayText = (homeRemedyText?.takeIf { it.isNotBlank() } ?: parsedRemedy)?.let { cleanText(it) }
-
+    val sections = adviceSections(answerText, reasonText, homeRemedyText)
+    val pathologyText = sections.reason?.let { cleanText(it) }
+    val remedyDisplayText = sections.remedy?.let { cleanText(it) }
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
 
         // Header
@@ -134,10 +118,10 @@ fun PracticalAdvice(
         }
 
         // Fallback: if neither structured fields nor parsing worked, show full answerText
-        if (pathologyText.isNullOrBlank() && remedyDisplayText.isNullOrBlank()) {
+        if (sections.unstructuredAnswer != null) {
             SelectionContainer {
                 Text(
-                    text = cleanText(answerText),
+                    text = cleanText(sections.unstructuredAnswer),
                     style = MaterialTheme.typography.bodyLarge,
                     color = tokens.ink
                 )

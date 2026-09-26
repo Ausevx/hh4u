@@ -96,7 +96,7 @@ fun ConsultationScreen(
                 }
                 
                 com.healinghands4u.presentation.components.PracticalAdvice(
-                    answerText = result.answer.answerText.orEmpty(), videoUrl = result.answer.videoUrl)
+                    answerText = result.answer.answerText.orEmpty(), videoUrl = result.answer.videoUrl, reasonText = result.answer.reasonText, homeRemedyText = result.answer.homeRemedyText ?: result.answer.remedyName)
             } else {
                 if (state.offlineEntry != null) {
                     Text(

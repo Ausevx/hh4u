@@ -21,6 +21,7 @@ export interface ConsultationResolutionResponse {
   answer: {
     id: string;
     answerText: string;
+    reasonText?: string;
     personalizedAnswer: string;
     remedyName?: string;
     dosageInstructions?: string;
@@ -195,6 +196,7 @@ export class ConsultationService {
       session.save(),
       localizeFields(getAIServices().llm, {
         id: answerDoc._id.toString(), answerText: templateText,
+        reasonText: answerDoc.reasonText,
         remedyName: answerDoc.remedyText, dosageInstructions: answerDoc.dosageInstructions,
         homeRemedyText: answerDoc.homeRemedyText, safetyDisclaimerText: answerDoc.safetyDisclaimerText,
         videoUrl: answerDoc.videoUrl,

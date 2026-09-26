@@ -19,7 +19,7 @@ describe('English database search with localized consultation and direct answers
   let llm: any;
   let embedding: any;
   const sourceAnswer = {
-    _id: answerId, answerText: 'Rest for 2 days.', remedyText: 'Named remedy 30C',
+    reasonText: 'Saved clinical reason. Second sentence.', _id: answerId, answerText: 'Rest for 2 days.', remedyText: 'Named remedy 30C',
     dosageInstructions: '4 pills', homeRemedyText: 'Drink water.',
     safetyDisclaimerText: 'Consult a doctor.', videoUrl: 'https://example.com/video',
   };
@@ -63,6 +63,7 @@ describe('English database search with localized consultation and direct answers
       expect(sessions.get(start.sessionId).originalLanguage).toBe(language);
       const result = await new ConsultationService().resolveConsultationAnswer({ sessionId: start.sessionId, answers: { q1: 'yes', q2: 'no' } });
       expect(result.answer.answerText).toBe(`[${language}] Rest for 2 days.`);
+      expect(result.answer.reasonText).toBe(`[${language}] ${sourceAnswer.reasonText}`);
       expect(result.answer.personalizedAnswer).toBe(result.answer.answerText);
       expect(result.answer.dosageInstructions).toBe(`[${language}] 4 pills`);
       expect(result.answer.videoUrl).toBe(sourceAnswer.videoUrl);
@@ -90,6 +91,7 @@ describe('English database search with localized consultation and direct answers
     expect(sessions.get(second.sessionId).matchedLevel1QuestionId).toEqual(questionId);
     const result = await new ConsultationService().resolveConsultationAnswer({ sessionId: second.sessionId, answers: { q1: 'yes', q2: 'no' } });
     expect(result.answer.answerText).toBe(sourceAnswer.answerText);
+    expect(result.answer.reasonText).toBe(sourceAnswer.reasonText);
     expect(llm.translateFields).not.toHaveBeenCalled();
   });
 

@@ -5,6 +5,18 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class AnswerPresentationTest {
+    @Test fun clinicalReasonUsesDedicatedSavedField() {
+        val saved = "Saved clinical reason.\n\nSecond clinical paragraph."
+        val sections = com.healinghands4u.presentation.components.adviceSections("Hello!\n\nI am Dr.\n\nAdvice", saved, "Saved remedy")
+        assertEquals(saved, sections.reason)
+        assertNull(sections.unstructuredAnswer)
+    }
+    @Test fun missingReasonNeverUsesGreetingAsClinicalReason() {
+        val answer = "Hello!\n\nI am Dr.\n\nAdvice"
+        val sections = com.healinghands4u.presentation.components.adviceSections(answer, null, "Saved remedy")
+        assertNull(sections.reason)
+        assertEquals(answer, sections.unstructuredAnswer)
+    }
     @Test fun findsBothVideosInSavedAnswer() {
         val first = "https://youtu.be/abcdefghijk"
         val second = "https://www.youtube.com/watch?v=lmnopqrstuv"

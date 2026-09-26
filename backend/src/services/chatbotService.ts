@@ -239,7 +239,7 @@ export class ChatbotService {
           remedyName: answerDoc.remedyText, dosageInstructions: answerDoc.dosageInstructions,
           homeRemedyText: answerDoc.homeRemedyText, safetyDisclaimerText: answerDoc.safetyDisclaimerText,
           videoUrl: answerDoc.videoUrl,
-        }, originalLanguage, [...ANSWER_FIELDS, 'reasonText']);
+        }, originalLanguage, ANSWER_FIELDS);
 
         const response: ChatbotQueryResponse = {
           success: true,

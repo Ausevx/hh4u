@@ -19,4 +19,4 @@ export async function localizeFields<T extends Record<string, any>>(
   return result;
 }
 
-export const ANSWER_FIELDS = ['answerText', 'remedyName', 'dosageInstructions', 'homeRemedyText', 'safetyDisclaimerText'];
+export const ANSWER_FIELDS = ['answerText', 'reasonText', 'remedyName', 'dosageInstructions', 'homeRemedyText', 'safetyDisclaimerText'];
