@@ -1,10 +1,6 @@
 package com.healinghands4u.presentation.components
 
-import android.content.Intent
-import android.net.Uri
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -12,7 +8,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -46,9 +41,23 @@ private fun cleanText(text: String): String = stripMarkdown(stripUrls(text))
 
 data class AdviceSections(val reason: String?, val remedy: String?, val unstructuredAnswer: String?)
 
-/** Only the dedicated database field identifies a clinical reason. Never guess from paragraphs. */
+/** Prefer saved fields; older servers may put the reason under an explicit answer heading. */
 fun adviceSections(answerText: String, reasonText: String?, homeRemedyText: String?): AdviceSections {
-    val reason = reasonText?.takeIf { it.isNotBlank() }
+    val lines = answerText.lines()
+    fun heading(line: String) = line.trim().trim('#', '*', ' ').trimEnd(':').trim()
+    val reasonHeadings = setOf("Pathology & Clinical Reason", "Understanding Your Symptoms")
+    val start = lines.indexOfFirst { line -> reasonHeadings.any { it.equals(heading(line), ignoreCase = true) } }
+    val legacyReason = if (start >= 0) {
+        lines.drop(start + 1).takeWhile { line ->
+            val title = heading(line)
+            !line.trimStart().startsWith("#") &&
+                !(line.trim().startsWith("**") && line.trim().endsWith("**")) &&
+                !title.contains("remed", ignoreCase = true) &&
+                !title.equals("Prescription", ignoreCase = true) &&
+                !line.trim().matches(Regex("-{3,}"))
+        }.joinToString("\n").trim().takeIf { it.isNotBlank() }
+    } else null
+    val reason = reasonText?.takeIf { it.isNotBlank() } ?: legacyReason
     val remedy = homeRemedyText?.takeIf { it.isNotBlank() }
     return AdviceSections(reason, remedy, answerText.takeIf {
         it.isNotBlank() && (reason == null || remedy == null) && it != reason && it != remedy
@@ -63,7 +72,6 @@ fun PracticalAdvice(
     modifier: Modifier = Modifier
 ) {
     val tokens = MaterialTheme.trustedTealColors
-    val context = LocalContext.current
     val videos = remember(answerText, videoUrl, reasonText, homeRemedyText) { answerVideoLinks(listOfNotNull(answerText, reasonText, homeRemedyText).joinToString("\n"), videoUrl) }
 
     val sections = adviceSections(answerText, reasonText, homeRemedyText)
@@ -98,6 +106,17 @@ fun PracticalAdvice(
             }
         }
 
+        // Keep unstructured advice before the separate remedy section.
+        if (sections.unstructuredAnswer != null) {
+            SelectionContainer {
+                Text(
+                    text = cleanText(sections.unstructuredAnswer),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = tokens.ink
+                )
+            }
+        }
+
         // Section 2: Home Remedy & Prescription
         if (!remedyDisplayText.isNullOrBlank()) {
             Text(
@@ -111,17 +130,6 @@ fun PracticalAdvice(
             SelectionContainer {
                 Text(
                     text = remedyDisplayText,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = tokens.ink
-                )
-            }
-        }
-
-        // Fallback: if neither structured fields nor parsing worked, show full answerText
-        if (sections.unstructuredAnswer != null) {
-            SelectionContainer {
-                Text(
-                    text = cleanText(sections.unstructuredAnswer),
                     style = MaterialTheme.typography.bodyLarge,
                     color = tokens.ink
                 )
