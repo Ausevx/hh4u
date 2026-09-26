@@ -49,11 +49,22 @@ private fun cleanText(text: String): String = stripMarkdown(stripUrls(text))
  * The database stores answerText as: "reasonText\n\nremedyText"
  */
 private fun splitAnswerText(answerText: String): Pair<String?, String?> {
-    val parts = answerText.split(Regex("\\n\\n+"), limit = 2)
-    return if (parts.size == 2 && parts[0].isNotBlank() && parts[1].isNotBlank()) {
-        Pair(parts[0].trim(), parts[1].trim())
-    } else {
-        Pair(null, null)
+    val parts = answerText.split(Regex("\\n\\n+"))
+    return when {
+        parts.size >= 3 -> {
+            // Assume format is [Greeting] \n\n [Reason] \n\n [Remedy] (and optionally more)
+            // Skip the greeting and take the next two parts
+            Pair(parts[1].trim(), parts.drop(2).joinToString("\n\n").trim())
+        }
+        parts.size == 2 -> {
+            // Assume format is [Reason] \n\n [Remedy]
+            if (parts[0].isNotBlank() && parts[1].isNotBlank()) {
+                Pair(parts[0].trim(), parts[1].trim())
+            } else {
+                Pair(null, null)
+            }
+        }
+        else -> Pair(null, null)
     }
 }
 
