@@ -13,6 +13,7 @@ data class ChatbotQueryRequest(
 data class AnswerDto(
     val id: String? = null,
     val answerText: String? = null,
+    val reasonText: String? = null,
     val remedyName: String? = null,
     val personalizedAnswer: String? = null,
     val dosageInstructions: String? = null,

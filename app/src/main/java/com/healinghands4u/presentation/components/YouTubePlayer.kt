@@ -1,10 +1,7 @@
 package com.healinghands4u.presentation.components
 
-import android.annotation.SuppressLint
-import android.view.ViewGroup
-import android.webkit.WebChromeClient
-import android.webkit.WebView
-import android.webkit.WebViewClient
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -26,7 +23,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.viewinterop.AndroidView
 import coil.compose.AsyncImagePainter
 import coil.compose.rememberAsyncImagePainter
 import coil.request.ImageRequest
@@ -55,10 +51,8 @@ fun extractYouTubeVideoId(url: String): String? {
 }
 
 /**
- * Inline YouTube video player. Shows a thumbnail with a play overlay; on tap,
- * replaces the thumbnail with a WebView that loads the YouTube embed iframe.
- *
- * Falls back to a styled "unavailable" card when the URL is not a valid YouTube link.
+ * YouTube video card. Shows a thumbnail with a play overlay.
+ * Tapping opens the YouTube app (or browser) instead of an inline iframe.
  */
 @Composable
 fun YouTubePlayer(
@@ -66,6 +60,7 @@ fun YouTubePlayer(
     modifier: Modifier = Modifier
 ) {
     val tokens = MaterialTheme.trustedTealColors
+    val context = LocalContext.current
     val videoId = remember(videoUrl) { extractYouTubeVideoId(videoUrl) }
 
     if (videoId == null) {
@@ -74,11 +69,16 @@ fun YouTubePlayer(
         return
     }
 
-    var playing by remember(videoId) { mutableStateOf(false) }
     val thumbnailUrl = "https://img.youtube.com/vi/$videoId/hqdefault.jpg"
 
     Card(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable {
+                // Open in YouTube app or browser
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(videoUrl))
+                context.startActivity(intent)
+            },
         shape = RoundedCornerShape(14.dp),
         border = BorderStroke(1.dp, tokens.line),
         colors = CardDefaults.cardColors(containerColor = tokens.surface)
@@ -100,7 +100,7 @@ fun YouTubePlayer(
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
-                    text = "Video",
+                    text = "Watch on YouTube",
                     style = MaterialTheme.typography.labelMedium.copy(
                         fontFamily = SoraFontFamily,
                         fontWeight = FontWeight.SemiBold,
@@ -110,7 +110,7 @@ fun YouTubePlayer(
                 )
             }
 
-            // Video area — 16:9 aspect ratio
+            // Thumbnail area — 16:9 aspect ratio
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -118,17 +118,10 @@ fun YouTubePlayer(
                     .clip(RoundedCornerShape(bottomStart = 14.dp, bottomEnd = 14.dp)),
                 contentAlignment = Alignment.Center
             ) {
-                if (!playing) {
-                    // Thumbnail + play overlay
-                    ThumbnailWithPlayOverlay(
-                        thumbnailUrl = thumbnailUrl,
-                        accentColor = tokens.accent,
-                        onPlay = { playing = true }
-                    )
-                } else {
-                    // Embedded WebView player
-                    YouTubeWebView(videoId = videoId)
-                }
+                ThumbnailWithPlayOverlay(
+                    thumbnailUrl = thumbnailUrl,
+                    accentColor = tokens.accent
+                )
             }
         }
     }
@@ -137,8 +130,7 @@ fun YouTubePlayer(
 @Composable
 private fun ThumbnailWithPlayOverlay(
     thumbnailUrl: String,
-    accentColor: Color,
-    onPlay: () -> Unit
+    accentColor: Color
 ) {
     val painter = rememberAsyncImagePainter(
         model = ImageRequest.Builder(LocalContext.current)
@@ -150,8 +142,7 @@ private fun ThumbnailWithPlayOverlay(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF1A1A1A))
-            .clickable(onClick = onPlay),
+            .background(Color(0xFF1A1A1A)),
         contentAlignment = Alignment.Center
     ) {
         // Thumbnail image
@@ -187,13 +178,13 @@ private fun ThumbnailWithPlayOverlay(
         if (painter.state !is AsyncImagePainter.State.Error) {
             Surface(
                 shape = CircleShape,
-                color = accentColor.copy(alpha = 0.9f),
+                color = Color.Red.copy(alpha = 0.9f),
                 shadowElevation = 4.dp,
                 modifier = Modifier.size(56.dp)
             ) {
                 Icon(
                     imageVector = Icons.Default.PlayArrow,
-                    contentDescription = "Play video",
+                    contentDescription = "Play on YouTube",
                     tint = Color.White,
                     modifier = Modifier
                         .padding(12.dp)
@@ -202,56 +193,6 @@ private fun ThumbnailWithPlayOverlay(
             }
         }
     }
-}
-
-@SuppressLint("SetJavaScriptEnabled")
-@Composable
-private fun YouTubeWebView(videoId: String) {
-    val embedHtml = """
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-            <style>
-                * { margin: 0; padding: 0; }
-                body { background: #000; overflow: hidden; }
-                iframe { width: 100%; height: 100%; border: none; position: absolute; top: 0; left: 0; }
-            </style>
-        </head>
-        <body>
-            <iframe
-                src="https://www.youtube.com/embed/$videoId?autoplay=1&rel=0&modestbranding=1&playsinline=1"
-                allow="autoplay; encrypted-media; picture-in-picture"
-                allowfullscreen>
-            </iframe>
-        </body>
-        </html>
-    """.trimIndent()
-
-    AndroidView(
-        factory = { context ->
-            WebView(context).apply {
-                layoutParams = ViewGroup.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.MATCH_PARENT
-                )
-                settings.javaScriptEnabled = true
-                settings.domStorageEnabled = true
-                settings.mediaPlaybackRequiresUserGesture = false
-                webChromeClient = WebChromeClient()
-                webViewClient = WebViewClient()
-                loadDataWithBaseURL(
-                    "https://www.youtube.com",
-                    embedHtml,
-                    "text/html",
-                    "UTF-8",
-                    null
-                )
-            }
-        },
-        onRelease = { view -> view.stopLoading(); view.loadUrl("about:blank"); view.destroy() },
-        modifier = Modifier.fillMaxSize()
-    )
 }
 
 @Composable
@@ -266,10 +207,7 @@ private fun NonYouTubeVideoFallback(
         label = "Watch Remedy Guide Video",
         onClick = { url ->
             try {
-                val intent = android.content.Intent(
-                    android.content.Intent.ACTION_VIEW,
-                    android.net.Uri.parse(url)
-                )
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
                 context.startActivity(intent)
             } catch (_: Exception) { }
         },

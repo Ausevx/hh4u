@@ -182,6 +182,7 @@ fun ChatbotAnswerScreen(
                     dosage = state.dosage,
                     homeRemedy = state.homeRemedy,
                     safetyDisclaimer = state.safetyDisclaimer,
+                    reasonText = state.reasonText,
                     videoUrl = state.videoUrl,
                     modifier = Modifier.padding(paddingValues)
                 )
@@ -237,6 +238,7 @@ fun ChatbotAnswerContent(
     dosage: String?,
     homeRemedy: String?,
     safetyDisclaimer: String?,
+    reasonText: String? = null,
     videoUrl: String?,
     modifier: Modifier = Modifier,
     notice: String? = null
@@ -264,7 +266,12 @@ fun ChatbotAnswerContent(
             Text(notice, style = MaterialTheme.typography.bodySmall)
             Spacer(modifier = Modifier.height(12.dp))
         }
-        com.healinghands4u.presentation.components.PracticalAdvice(answerText, videoUrl)
+        com.healinghands4u.presentation.components.PracticalAdvice(
+            answerText = answerText,
+            videoUrl = videoUrl,
+            reasonText = reasonText,
+            homeRemedyText = homeRemedy
+        )
 
         Spacer(modifier = Modifier.height(24.dp))
 

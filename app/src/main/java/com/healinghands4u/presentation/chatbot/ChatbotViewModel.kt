@@ -18,6 +18,7 @@ sealed interface ChatbotUiState {
     object Loading : ChatbotUiState
     data class Success(
         val answerText: String,
+        val reasonText: String? = null,
         val remedyName: String? = null,
         val dosage: String? = null,
         val homeRemedy: String? = null,
@@ -50,6 +51,7 @@ class ChatbotViewModel @Inject constructor(
                         _state.value = ChatbotUiState.Success(
                             answerText = answer?.answerText?.takeIf { it.isNotBlank() }
                                 ?: response.message ?: "No saved answer found.",
+                            reasonText = answer?.reasonText,
                             remedyName = answer?.remedyName,
                             dosage = answer?.dosageInstructions,
                             homeRemedy = answer?.homeRemedyText,
@@ -78,6 +80,7 @@ class ChatbotViewModel @Inject constructor(
                 } else {
                     ChatbotUiState.Success(
                         answerText = match.answerText ?: match.reasonText.orEmpty(),
+                        reasonText = match.reasonText,
                         remedyName = match.remedyText,
                         dosage = match.dosageInstructions,
                         homeRemedy = match.homeRemedyText,
