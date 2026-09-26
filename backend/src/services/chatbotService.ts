@@ -43,6 +43,7 @@ export interface ChatbotQueryResponse {
   answer?: {
     id: string;
     answerText: string;
+    reasonText?: string;
     remedyName?: string;
     dosageInstructions?: string;
     homeRemedyText?: string;
@@ -234,10 +235,11 @@ export class ChatbotService {
 
         const localizedAnswer = await localizeFields(ai.llm, {
           id: answerDoc._id.toString(), answerText: answerDoc.answerText,
+          reasonText: answerDoc.reasonText,
           remedyName: answerDoc.remedyText, dosageInstructions: answerDoc.dosageInstructions,
           homeRemedyText: answerDoc.homeRemedyText, safetyDisclaimerText: answerDoc.safetyDisclaimerText,
           videoUrl: answerDoc.videoUrl,
-        }, originalLanguage, ANSWER_FIELDS);
+        }, originalLanguage, [...ANSWER_FIELDS, 'reasonText']);
 
         const response: ChatbotQueryResponse = {
           success: true,
