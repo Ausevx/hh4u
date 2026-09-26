@@ -26,10 +26,19 @@ object OfflineKnowledgeMatcher {
     private val stopWords = ("i am is are was were have has had a an the my me we you your " +
         "and or of for to in on with from it this that do does did please help suffering " +
         "what how can should could would remedy remedies treatment homeopathic ayurvedic " +
-        "experiencing feel feeling relief recommended need some very currently recently").split(" ").toSet()
+        "experiencing feel feeling relief recommended need some very currently recently " +
+        "severe mild since yesterday today days day weeks week months month really " +
+        "why getting get having been any also about there then than when while " +
+        "problem problems symptoms symptom often frequently frequent repeatedly persistent").split(" ").toSet()
+    private val synonyms = mapOf("aches" to "pain", "ache" to "pain", "aching" to "pain",
+        "hurts" to "pain", "hurt" to "pain", "painful" to "pain", "tummy" to "stomach",
+        "belly" to "stomach", "abdomen" to "stomach", "abdominal" to "stomach",
+        "urinating" to "urine", "urination" to "urine", "pee" to "urine",
+        "headaches" to "headache", "coughing" to "cough", "fevers" to "fever")
     private fun tokens(text: String): Set<String> = Regex("[\\p{L}\\p{M}\\p{N}]+")
         .findAll(text.lowercase(Locale.ROOT)).map { it.value }
-        .filter { it.length > 1 && it !in stopWords }.toSet()
+        .filter { it.length > 1 && it !in stopWords }
+        .map { synonyms[it] ?: it }.toSet()
 
     /** Rank all cached questions, tags and diagnostic questions; never interpolate FTS syntax. */
     fun search(query: String, entries: List<KnowledgeBaseEntity>): List<KnowledgeBaseEntity> {
@@ -44,7 +53,9 @@ object OfflineKnowledgeMatcher {
             val primaryHits = queryTokens.count { matches(it, primary) }
             val hits = queryTokens.count { matches(it, primary) || matches(it, diagnostic) }
             val coverage = hits.toDouble() / queryTokens.size
-            if (coverage < 0.6) null else entry to (coverage * 10 + primaryHits * 2)
+            val enough = if (queryTokens.size <= 2) hits == queryTokens.size else hits >= 2 && coverage >= 0.4
+            if (!enough || primaryHits == 0) null
+            else entry to (primaryHits * 10 + coverage * 4 + hits * 0.5)
         }.sortedWith(compareByDescending<Pair<KnowledgeBaseEntity, Double>> { it.second }.thenBy { it.first.id })
             .map { it.first }.take(10)
     }

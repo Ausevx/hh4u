@@ -53,6 +53,32 @@ android {
     }
 }
 
+// Isolated integration tests use the real bundled asset and Room database without
+// compiling legacy UI tests that still reference removed screens.
+if (providers.gradleProperty("offlineTestsOnly").orNull == "true") {
+    android.sourceSets.getByName("test").java.setSrcDirs(listOf("src/offlineTest/kotlin"))
+    kotlin.sourceSets.getByName("test").kotlin.setSrcDirs(listOf("src/offlineTest/kotlin"))
+}
+
+val verifyOfflineBundle by tasks.registering {
+    val bundle = layout.projectDirectory.file("src/main/assets/knowledge_base.json")
+    inputs.file(bundle)
+    doLast {
+        val entries = groovy.json.JsonSlurper().parse(bundle.asFile) as? List<*>
+        check(!entries.isNullOrEmpty()) { "The APK must contain a nonempty offline knowledge base." }
+        val ids = mutableSetOf<String>()
+        entries.forEach { item ->
+            val row = item as? Map<*, *> ?: error("Invalid offline record")
+            val id = row["id"] as? String ?: error("Offline record has no ID")
+            check(ids.add(id) && id.isNotBlank()) { "Duplicate or empty offline ID" }
+            check(!(row["questionText"] as? String).isNullOrBlank()) { "Offline record has no question" }
+            check(!(row["answerText"] as? String).isNullOrBlank()) { "Offline record has no answer" }
+        }
+        logger.lifecycle("Verified ${entries.size} bundled offline questions and answers")
+    }
+}
+tasks.named("preBuild").configure { dependsOn(verifyOfflineBundle) }
+
 dependencies {
     implementation("androidx.credentials:credentials:1.3.0")
     implementation("androidx.credentials:credentials-play-services-auth:1.3.0")

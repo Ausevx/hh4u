@@ -88,7 +88,7 @@ fun ConsultationScreen(
             if (result != null) {
                 if (result.offline) {
                     Text(
-                        text = "Offline result from saved consultation guidance.",
+                        text = result.notice ?: "Offline result from saved consultation guidance.",
                         color = tokens.inkDim,
                         style = MaterialTheme.typography.bodySmall,
                         modifier = Modifier.padding(bottom = 8.dp)

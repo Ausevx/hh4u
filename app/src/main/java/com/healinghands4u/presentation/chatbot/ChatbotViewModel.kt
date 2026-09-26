@@ -37,16 +37,42 @@ class ChatbotViewModel @Inject constructor(
     private val _state = MutableStateFlow<ChatbotUiState>(ChatbotUiState.Idle)
     val state: StateFlow<ChatbotUiState> = _state
 
-    init {
-        // Ensure local KB is seeded if empty
-        viewModelScope.launch {
-            offlineSearchRepository.getLocalKbCount()
-        }
-    }
-
     fun querySymptoms(symptoms: String) {
-        _state.value = ChatbotUiState.Loading
         viewModelScope.launch {
+            _state.value = ChatbotUiState.Loading
+            val online = offlineSearchRepository.isOnline()
+            // 1. Instant offline check
+            var hasLocalMatch = false
+            try {
+                val localMatches = offlineSearchRepository.searchOffline(symptoms)
+                if (localMatches.isNotEmpty()) {
+                    hasLocalMatch = true
+                    val match = localMatches.first()
+                    _state.value = ChatbotUiState.Success(
+                        answerText = (match.answerText ?: match.reasonText ?: "No detail provided") +
+                            if (online) "\n\n(Loading online result...)" else "\n\nOffline: saved English guidance for: ${match.questionText}",
+                        remedyName = match.remedyText,
+                        dosage = match.dosageInstructions,
+                        homeRemedy = match.homeRemedyText,
+                        safetyDisclaimer = match.safetyDisclaimerText,
+                        videoUrl = match.videoUrl
+                    )
+                    if (!online) {
+                        offlineSearchRepository.recordSearchEvent(symptoms, null, match.id)
+                        return@launch
+                    }
+                } else {
+                    if (!online) {
+                        _state.value = ChatbotUiState.Error("No saved English answer matches this question. Try a short phrase such as 'headache' or 'stomach pain'.")
+                        return@launch
+                    }
+                    _state.value = ChatbotUiState.Loading
+                }
+            } catch (e: Exception) {
+                if (e is CancellationException) throw e
+                _state.value = ChatbotUiState.Loading
+            }
+
             try {
                 // Determine if we should even try network
                 if (!offlineSearchRepository.isOnline()) {
@@ -73,15 +99,46 @@ class ChatbotViewModel @Inject constructor(
                     // Record click
                     offlineSearchRepository.recordSearchEvent(symptoms, null, ans?.id)
                 } else {
-                    _state.value = ChatbotUiState.Error("Failed: ${response.message ?: "Unknown error"}")
+                    if (!hasLocalMatch) {
+                        _state.value = ChatbotUiState.Error("Failed: ${response.message ?: "Unknown error"}")
+                    } else {
+                        // Re-emit local match to remove "(Loading online result...)" text
+                        val match = offlineSearchRepository.searchOffline(symptoms).first()
+                        _state.value = ChatbotUiState.Success(
+                            answerText = match.answerText ?: match.reasonText ?: "No detail provided",
+                            remedyName = match.remedyText,
+                            dosage = match.dosageInstructions,
+                            homeRemedy = match.homeRemedyText,
+                            safetyDisclaimer = match.safetyDisclaimerText,
+                            videoUrl = match.videoUrl
+                        )
+                    }
                 }
             } catch (e: Exception) {
                 if (e is CancellationException) throw e
+                
+                if (hasLocalMatch) {
+                    // Re-emit local match to remove loading text
+                    try {
+                        val match = offlineSearchRepository.searchOffline(symptoms).first()
+                        _state.value = ChatbotUiState.Success(
+                            answerText = match.answerText ?: match.reasonText ?: "No detail provided",
+                            remedyName = match.remedyText,
+                            dosage = match.dosageInstructions,
+                            homeRemedy = match.homeRemedyText,
+                            safetyDisclaimer = match.safetyDisclaimerText,
+                            videoUrl = match.videoUrl
+                        )
+                    } catch (e2: Exception) {}
+                    return@launch
+                }
+
                 if (e is retrofit2.HttpException &&
                     e.response()?.errorBody()?.string()?.contains("TRANSLATION_UNAVAILABLE") == true) {
                     _state.value = ChatbotUiState.Error("Translation is temporarily unavailable. Please retry.")
                     return@launch
                 }
+                
                 // Fallback to offline FTS search
                 try {
                     val localMatches = offlineSearchRepository.searchOffline(symptoms)

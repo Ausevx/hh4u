@@ -17,6 +17,7 @@ coverage/
 # Android/Gradle
 *.iml
 .gradle/
+.kotlin/
 local.properties
 /build/
 */build/

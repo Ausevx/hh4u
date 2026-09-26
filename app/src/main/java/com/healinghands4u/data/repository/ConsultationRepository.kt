@@ -14,7 +14,7 @@ data class ConsultationStart(
     val message: String? = null
 )
 
-data class ConsultationResult(val answer: AnswerDto, val offline: Boolean)
+data class ConsultationResult(val answer: AnswerDto, val offline: Boolean, val notice: String? = null)
 
 interface ConsultationDataSource {
     suspend fun start(query: String): ConsultationStart
@@ -93,6 +93,10 @@ class ConsultationRepository @Inject constructor(
     private fun resolveOffline(entry: KnowledgeBaseEntity, questions: List<DiagnosticQuestionDto>, answers: Map<String, String>): ConsultationResult {
         if (entry.consultationData().questions != questions)
             throw IllegalStateException("The saved questions differ from this consultation. Reconnect and retry; your answers are kept.")
+        if (entry.consultationData().branches.isEmpty() && !entry.answerText.isNullOrBlank()) {
+            return ConsultationResult(entry.directAnswer(), true,
+                "Offline: saved general guidance for this topic. This answer is not tailored to your yes/no responses.")
+        }
         val answer = OfflineKnowledgeMatcher.resolve(entry, answers)
             ?: throw IllegalStateException("No saved answer matches your responses. Please reconnect or consult the clinic.")
         return ConsultationResult(answer, true)

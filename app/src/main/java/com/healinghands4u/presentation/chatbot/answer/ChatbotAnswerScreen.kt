@@ -128,13 +128,36 @@ fun ChatbotAnswerScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(paddingValues),
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally
+                        .padding(paddingValues)
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.Top,
+                    horizontalAlignment = Alignment.Start
                 ) {
-                    CircularProgressIndicator(color = tokens.accent)
+                    Text("Consulting Dr. AI...", color = tokens.inkDim, style = MaterialTheme.typography.bodySmall)
                     Spacer(modifier = Modifier.height(16.dp))
-                    Text("Consulting Dr. AI...", color = tokens.inkDim)
+                    
+                    // Skeleton Chat Bubble
+                    androidx.compose.foundation.layout.Box(
+                        modifier = Modifier
+                            .fillMaxWidth(0.85f)
+                            .height(120.dp)
+                            .background(
+                                color = tokens.surfaceTint,
+                                shape = RoundedCornerShape(16.dp, 16.dp, 16.dp, 0.dp)
+                            )
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    // Skeleton Remedy Card
+                    androidx.compose.foundation.layout.Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(160.dp)
+                            .background(
+                                color = tokens.surfaceTint,
+                                shape = RoundedCornerShape(12.dp)
+                            )
+                    )
                 }
             }
             is ChatbotUiState.Error -> {

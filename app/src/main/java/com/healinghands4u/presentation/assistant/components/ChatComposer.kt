@@ -24,7 +24,25 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import com.healinghands4u.presentation.theme.trustedTealColors
-import kotlinx.coroutines.delay
+import android.app.Activity
+import android.content.ActivityNotFoundException
+import android.content.Intent
+import android.speech.RecognizerIntent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.TextButton
+import java.util.Locale
+
+private val speechLanguages = listOf(
+    "" to "Device language", "en-IN" to "English (India)", "hi-IN" to "Hindi",
+    "gu-IN" to "Gujarati", "mr-IN" to "Marathi", "bn-IN" to "Bengali",
+    "ta-IN" to "Tamil", "te-IN" to "Telugu", "kn-IN" to "Kannada",
+    "ml-IN" to "Malayalam", "pa-IN" to "Punjabi", "ur-IN" to "Urdu",
+    "or-IN" to "Odia", "as-IN" to "Assamese"
+)
 
 @Composable
 fun ChatComposer(
@@ -32,17 +50,35 @@ fun ChatComposer(
     initialQuery: String = "",
     onSend: (String) -> Unit
 ) {
-    var queryText by remember(initialQuery) { mutableStateOf(initialQuery) }
-    var isListening by remember { mutableStateOf(false) }
+    var queryText by rememberSaveable(initialQuery) { mutableStateOf(initialQuery) }
+    var isListening by rememberSaveable { mutableStateOf(false) }
+    var languageTag by rememberSaveable { mutableStateOf("") }
+    var showLanguages by remember { mutableStateOf(false) }
+    var speechMessage by rememberSaveable { mutableStateOf<String?>(null) }
     val tokens = MaterialTheme.trustedTealColors
-
-    // Simulate speech-to-text typing effect
-    LaunchedEffect(isListening) {
-        if (isListening) {
-            delay(1500)
-            queryText = "Mera pet dard ho raha hai, koi gharelu upay?"
-            delay(500)
-            isListening = false
+    // The system recognition activity owns the microphone and its permission UI.
+    // No audio is recorded or uploaded by this app; only the final text is returned.
+    val speechLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        isListening = false
+        if (result.resultCode == Activity.RESULT_OK) {
+            val spoken = result.data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
+                ?.firstOrNull { it.isNotBlank() }?.trim()
+            if (spoken != null) {
+                queryText = listOf(queryText.trim(), spoken).filter { it.isNotEmpty() }.joinToString(" ")
+                speechMessage = "Review your question, then tap Send."
+            } else {
+                speechMessage = "No speech was recognized. Try again or type your question."
+            }
+        } else if (result.resultCode == Activity.RESULT_CANCELED) {
+            // Keep the existing draft when the dialog is dismissed or recognition fails.
+            speechMessage = "Voice input closed. You can try again or type your question."
+        } else {
+            speechMessage = when (result.resultCode) {
+                RecognizerIntent.RESULT_NETWORK_ERROR -> "Voice input needs a connection or an installed offline language. Try again or type your question."
+                RecognizerIntent.RESULT_NO_MATCH -> "Speech was not recognized. Speak clearly and try again."
+                RecognizerIntent.RESULT_AUDIO_ERROR -> "Microphone unavailable. Check microphone access in your phone's settings."
+                else -> "Voice input could not finish. Try again or type your question."
+            }
         }
     }
 
@@ -87,6 +123,7 @@ fun ChatComposer(
                 BasicTextField(
                     value = queryText,
                     onValueChange = { queryText = it },
+                    enabled = !isListening,
                     textStyle = MaterialTheme.typography.bodyMedium.copy(color = tokens.ink),
                     modifier = Modifier
                         .weight(1f)
@@ -95,7 +132,7 @@ fun ChatComposer(
                     decorationBox = { innerTextField ->
                         if (queryText.isEmpty()) {
                             Text(
-                                text = if (isListening) "Listening in English, Hindi, Hinglish..." else "Ask a wellness question…",
+                                text = if (isListening) "Voice input is open…" else "Ask a wellness question…",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = tokens.inkDim
                             )
@@ -112,12 +149,33 @@ fun ChatComposer(
                         .size(40.dp)
                         .clip(CircleShape)
                         .background(if (isListening) tokens.surfaceTint.copy(alpha = 0.6f) else Color.Transparent)
-                        .clickable { isListening = !isListening },
+                        .clickable(enabled = !isListening) {
+                            speechMessage = null
+                            val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                                putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                                putExtra(RecognizerIntent.EXTRA_LANGUAGE, languageTag.ifBlank { Locale.getDefault().toLanguageTag() })
+                                putExtra(RecognizerIntent.EXTRA_PROMPT, "Speak your wellness question")
+                                putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
+                            }
+                            try {
+                                isListening = true
+                                speechLauncher.launch(intent)
+                            } catch (_: ActivityNotFoundException) {
+                                isListening = false
+                                speechMessage = "Voice input is unavailable on this phone. Enable a speech recognition app or type your question."
+                            } catch (_: SecurityException) {
+                                isListening = false
+                                speechMessage = "Microphone access is blocked. Check the speech app's microphone permission in Settings, or type your question."
+                            } catch (_: IllegalStateException) {
+                                isListening = false
+                                speechMessage = "Voice input could not start. Please try again."
+                            }
+                        },
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Default.Mic,
-                        contentDescription = "Microphone",
+                        contentDescription = "Speak your question",
                         tint = com.healinghands4u.presentation.theme.ClinicalTertiary,
                         modifier = Modifier.size(20.dp)
                     )
@@ -131,7 +189,7 @@ fun ChatComposer(
                         .size(40.dp)
                         .clip(CircleShape)
                         .background(tokens.accent)
-                        .clickable(enabled = queryText.isNotBlank()) {
+                        .clickable(enabled = !isListening && queryText.isNotBlank()) {
                             onSend(queryText)
                             queryText = ""
                         },
@@ -145,6 +203,26 @@ fun ChatComposer(
                     )
                 }
             }
+        }
+
+        Box {
+            TextButton(onClick = { showLanguages = true }, enabled = !isListening) {
+                Text("Speech: ${speechLanguages.first { it.first == languageTag }.second}",
+                    style = MaterialTheme.typography.labelMedium)
+            }
+            DropdownMenu(expanded = showLanguages, onDismissRequest = { showLanguages = false },
+                modifier = Modifier.heightIn(max = 300.dp)) {
+                speechLanguages.forEach { (tag, name) ->
+                    DropdownMenuItem(text = { Text(name) }, onClick = {
+                        languageTag = tag
+                        showLanguages = false
+                        speechMessage = "Language availability depends on your phone's speech service."
+                    })
+                }
+            }
+        }
+        speechMessage?.let { message ->
+            Text(message, style = MaterialTheme.typography.bodySmall, color = tokens.inkDim)
         }
 
         Spacer(modifier = Modifier.height(8.dp))

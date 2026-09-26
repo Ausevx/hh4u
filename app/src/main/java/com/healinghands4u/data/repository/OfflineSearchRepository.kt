@@ -16,10 +16,11 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 private const val TAG = "OfflineSearchRepo"
 private const val PREFS_NAME = "kb_sync_prefs"
-private const val KEY_LAST_SYNC = "last_sync_version"
 private const val KEY_LAST_SYNC_TIME = "last_sync_time"
 private const val STALE_THRESHOLD_MS = 24 * 60 * 60 * 1000L // 24 hours
 
@@ -43,7 +44,8 @@ class OfflineSearchRepository @Inject constructor(
             ?: return false
         val network = cm.activeNetwork ?: return false
         val caps = cm.getNetworkCapabilities(network) ?: return false
-        return caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+        return caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
+            caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
     }
 
     /**
@@ -52,33 +54,42 @@ class OfflineSearchRepository @Inject constructor(
      */
     suspend fun searchOffline(query: String): List<KnowledgeBaseEntity> {
         getLocalKbCount()
-        return OfflineKnowledgeMatcher.search(query, knowledgeBaseDao.getAll())
+        return withContext(Dispatchers.Default) {
+            OfflineKnowledgeMatcher.search(query, knowledgeBaseDao.getAll())
+        }
     }
 
-    suspend fun getById(id: String): KnowledgeBaseEntity? = knowledgeBaseDao.getById(id)
+    suspend fun getById(id: String): KnowledgeBaseEntity? {
+        getLocalKbCount()
+        return knowledgeBaseDao.getById(id)
+    }
 
     /**
      * Downloads the knowledge base from the backend and replaces the local cache.
      * Uses version checking to skip re-downloading if data hasn't changed.
      */
-    suspend fun syncKnowledgeBase(): Boolean = cacheMutex.withLock {
-        return@withLock try {
+    suspend fun syncKnowledgeBase(): Boolean {
+        return try {
+            getLocalKbCount()
             val lastVersion = prefs.getString("snapshot_v2", null)
+            // Network IO must not hold the local cache lock: offline searches never wait for it.
             val response = syncApi.getKnowledgeBase(since = lastVersion)
 
             if (!response.success || response.schemaVersion != 2) {
                 Log.w(TAG, "Sync API returned failure")
-                return@withLock false
+                return false
             }
 
             if (response.upToDate == true) {
                 Log.d(TAG, "Knowledge base is up to date")
                 prefs.edit().putLong(KEY_LAST_SYNC_TIME, System.currentTimeMillis()).apply()
-                return@withLock true
+                return true
             }
 
-            val items = response.items ?: return@withLock false
-            if (response.totalItems != null && response.totalItems != items.size) return@withLock false
+            val items = response.items ?: return false
+            if (response.totalItems != null && response.totalItems != items.size) return false
+            // Keep the usable bundled cache when the server has no downloadable content.
+            if (items.isEmpty()) return false
 
             val entities = items.map { item ->
                 KnowledgeBaseEntity(
@@ -103,13 +114,13 @@ class OfflineSearchRepository @Inject constructor(
             }
 
             // Replace local cache
-            knowledgeBaseDao.replaceAll(entities)
-
-            // Save the version for next sync
-            prefs.edit()
-                .putString("snapshot_v2", response.dataVersion)
-                .putLong(KEY_LAST_SYNC_TIME, System.currentTimeMillis())
-                .apply()
+            cacheMutex.withLock {
+                knowledgeBaseDao.replaceAll(entities)
+                prefs.edit()
+                    .putString("snapshot_v2", response.dataVersion)
+                    .putLong(KEY_LAST_SYNC_TIME, System.currentTimeMillis())
+                    .apply()
+            }
 
             Log.i(TAG, "Synced ${entities.size} knowledge base entries")
             true
@@ -134,8 +145,10 @@ class OfflineSearchRepository @Inject constructor(
      */
     suspend fun getLocalKbCount(): Int = cacheMutex.withLock {
         val count = knowledgeBaseDao.getCount()
-        if (!prefs.contains("snapshot_v2") && !prefs.getBoolean("bundle_v3_loaded", false)) {
+        if (count == 0 || (!prefs.contains("snapshot_v2") && !prefs.getBoolean("bundle_v3_loaded", false))) {
             seedOfflineDbIfEmpty()
+            // A restored preference must not claim this freshly seeded DB is a server snapshot.
+            prefs.edit().remove("snapshot_v2").apply()
             return@withLock knowledgeBaseDao.getCount()
         }
         count
@@ -146,7 +159,9 @@ class OfflineSearchRepository @Inject constructor(
      */
     private suspend fun seedOfflineDbIfEmpty() {
         try {
-            val jsonString = context.assets.open("knowledge_base.json").bufferedReader().use { it.readText() }
+            val jsonString = withContext(Dispatchers.IO) {
+                context.assets.open("knowledge_base.json").bufferedReader().use { it.readText() }
+            }
             val type = object : com.google.gson.reflect.TypeToken<List<KnowledgeBaseEntity>>() {}.type
             val entries: List<KnowledgeBaseEntity> = com.google.gson.Gson().fromJson(jsonString, type)
             
