@@ -3,7 +3,7 @@ import { ILLMService, PersonalizeAnswerParams, TranslateResult } from '../types'
 
 export class GroqLLMService implements ILLMService {
   private ai: Groq;
-  private model = 'llama-3.1-70b-versatile';
+  private model = 'openai/gpt-oss-20b';
 
   constructor(apiKey: string) {
     this.ai = new Groq({ apiKey });
@@ -134,18 +134,26 @@ Only output valid JSON.`;
   }
 
   async generatePersonalizedAnswer(params: PersonalizeAnswerParams): Promise<string> {
-    const response = await this.ai.chat.completions.create({
-      model: this.model,
-      messages: [
-        { role: 'system', content: `You are a homeopathic assistant. Your task is to output a VERY BRIEF, single-sentence greeting acknowledging the user's query, followed IMMEDIATELY by the exact 'Standard Template Answer' provided. DO NOT add any extra fluff, long paragraphs, or conversational filler. The output should be as close to the raw database answer as possible while still sounding natural. Translate the response to the user's language preference if necessary.` },
-        { role: 'user', content: `Original Query: "${params.originalQuery}"
-Standard Template Answer: "${params.templateText}"
-User Language Preference: ${params.userLanguage || 'English'}` }
-      ],
-      max_tokens: 1024,
-      temperature: 0.1,
-    });
+    try {
+      const response = await this.ai.chat.completions.create({
+        model: this.model,
+        messages: [
+          { role: 'system', content: `You are a helpful assistant. Generate ONLY a brief greeting or introductory phrase (e.g., "Hello!", "I can help with that.") in ${params.userLanguage || 'English'} based on the user's query. Output nothing else. Do not provide medical advice or answer the question.` },
+          { role: 'user', content: `User query: "${params.originalQuery}"` }
+        ],
+        max_tokens: 50,
+        temperature: 0.1,
+      });
 
-    return response.choices[0]?.message?.content || params.templateText;
+      const greeting = response.choices[0]?.message?.content?.trim() || '';
+      
+      if (greeting && !greeting.toLowerCase().includes('here is')) {
+        return `${greeting}\n\n${params.templateText}`;
+      }
+      return params.templateText;
+    } catch (e) {
+      console.error('Groq generatePersonalizedAnswer error', e);
+      return params.templateText;
+    }
   }
 }

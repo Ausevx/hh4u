@@ -14,9 +14,13 @@ describe('Chatbot Live Gemini & Atlas Integration Test Suite', () => {
   let mongoServer: MongoMemoryServer;
   const originalUseMockAi = process.env.USE_MOCK_AI;
 
+  let originalGroqApiKey: string | undefined;
+
   beforeAll(async () => {
     // Force live Gemini services for this suite
     process.env.USE_MOCK_AI = 'false';
+    originalGroqApiKey = process.env.GROQ_API_KEY;
+    delete process.env.GROQ_API_KEY;
     resetAIServices();
 
     mongoServer = await MongoMemoryServer.create();
@@ -27,6 +31,9 @@ describe('Chatbot Live Gemini & Atlas Integration Test Suite', () => {
     await mongoose.disconnect();
     await mongoServer.stop();
     process.env.USE_MOCK_AI = originalUseMockAi || 'true';
+    if (originalGroqApiKey !== undefined) {
+      process.env.GROQ_API_KEY = originalGroqApiKey;
+    }
     resetAIServices();
   });
 
