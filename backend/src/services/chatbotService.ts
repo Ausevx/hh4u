@@ -239,6 +239,12 @@ export class ChatbotService {
           videoUrl: answerDoc.videoUrl,
         }, originalLanguage, ANSWER_FIELDS);
 
+        localizedAnswer.answerText = await ai.llm.generatePersonalizedAnswer({
+          originalQuery: originalQueryText,
+          templateText: localizedAnswer.answerText,
+          userLanguage: originalLanguage,
+        });
+
         const response: ChatbotQueryResponse = {
           ...requestMetadata(),
           success: true,

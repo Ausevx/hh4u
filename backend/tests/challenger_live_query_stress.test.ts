@@ -18,6 +18,7 @@ describe('Empirical Challenger: Live Backend Query Resolution Pipeline Stress Te
   let mongoServer: MongoMemoryServer;
   const originalUseMockAi = process.env.USE_MOCK_AI;
   const originalGeminiKey = process.env.GEMINI_API_KEY;
+  const originalGroqKey = process.env.GROQ_API_KEY;
 
   beforeAll(async () => {
     // Ensure live Gemini services are active for stress testing
@@ -35,6 +36,9 @@ describe('Empirical Challenger: Live Backend Query Resolution Pipeline Stress Te
     if (originalGeminiKey) {
       process.env.GEMINI_API_KEY = originalGeminiKey;
     }
+    if (originalGroqKey) {
+      process.env.GROQ_API_KEY = originalGroqKey;
+    }
     resetAIServices();
   });
 
@@ -47,12 +51,16 @@ describe('Empirical Challenger: Live Backend Query Resolution Pipeline Stress Te
     if (originalGeminiKey) {
       process.env.GEMINI_API_KEY = originalGeminiKey;
     }
+    if (originalGroqKey) {
+      process.env.GROQ_API_KEY = originalGroqKey;
+    }
     resetAIServices();
   });
 
   describe('1. Container Service Instantiation & Key Handling', () => {
     it('instantiates GeminiLLMService and GeminiEmbeddingService when GEMINI_API_KEY is present', () => {
       process.env.USE_MOCK_AI = 'false';
+      delete process.env.GROQ_API_KEY; // Ensure Groq doesn't override Gemini
       resetAIServices();
       const ai = getAIServices();
       expect(ai.llm).toBeInstanceOf(GeminiLLMService);
@@ -71,6 +79,7 @@ describe('Empirical Challenger: Live Backend Query Resolution Pipeline Stress Te
     it('falls back cleanly to Mock services when GEMINI_API_KEY is unset', () => {
       process.env.USE_MOCK_AI = 'false';
       delete process.env.GEMINI_API_KEY;
+      delete process.env.GROQ_API_KEY;
       resetAIServices();
       const ai = getAIServices();
       expect(ai.llm).toBeInstanceOf(MockLLMService);

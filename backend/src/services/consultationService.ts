@@ -205,6 +205,13 @@ export class ConsultationService {
       }, language, ANSWER_FIELDS),
     ]);
 
+    const personalizedAnswerText = await getAIServices().llm.generatePersonalizedAnswer({
+      originalQuery: session.originalQueryText || '',
+      templateText: localizedAnswer.answerText,
+      userLanguage: language,
+      additionalContext: { consultationAnswers: normalizedAnswers },
+    });
+
     // Format conditions for response
     let formattedConditions: Record<string, string> = {};
     if (matchedBranch?.conditions) {
@@ -227,9 +234,9 @@ export class ConsultationService {
         : undefined,
       answer: {
         ...localizedAnswer,
-        personalizedAnswer: localizedAnswer.answerText,
+        personalizedAnswer: personalizedAnswerText,
       },
-      personalized: false,
+      personalized: true,
       language,
     };
   }

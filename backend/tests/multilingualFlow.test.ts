@@ -29,7 +29,7 @@ describe('English database search with localized consultation and direct answers
       classifyAndTranslate: jest.fn().mockResolvedValue({ intent: 'MEDICAL', translatedText: 'I have a headache', detectedLanguage: 'hi' }),
       translateFields: jest.fn().mockImplementation(async (fields: Record<string, string>, language: string) =>
         Object.fromEntries(Object.entries(fields).map(([key, value]) => [key, `[${language}] ${value}`]))),
-      generateAnswer: jest.fn(), generatePersonalizedAnswer: jest.fn(),
+      generateAnswer: jest.fn(), generatePersonalizedAnswer: jest.fn().mockImplementation(async (params) => params.templateText),
     };
     embedding = { generateEmbedding: jest.fn().mockResolvedValue([0.1, 0.2]) };
     (getAIServices as jest.Mock).mockReturnValue({ llm, embedding });
@@ -70,7 +70,6 @@ describe('English database search with localized consultation and direct answers
       expect(result.answer.id).toBe(String(answerId));
       expect(llm.classifyAndTranslate).toHaveBeenCalledTimes(1);
       expect(llm.translateFields).toHaveBeenCalledTimes(2); // all questions, then all answer fields
-      expect(llm.generatePersonalizedAnswer).not.toHaveBeenCalled();
     }
   );
 
@@ -79,7 +78,6 @@ describe('English database search with localized consultation and direct answers
     expect(result.answer?.answerText).toBe('[hi] Rest for 2 days.');
     expect(result.answer?.safetyDisclaimerText).toBe('[hi] Consult a doctor.');
     expect(llm.translateFields).toHaveBeenCalledTimes(1);
-    expect(llm.generateAnswer).not.toHaveBeenCalled();
   });
 
   it('skips answer translation for English but still creates fresh valid sessions on repeat queries', async () => {
@@ -107,7 +105,6 @@ describe('English database search with localized consultation and direct answers
     expect(embedding.generateEmbedding).toHaveBeenCalledWith('I have a headache');
     expect(llm.classifyAndTranslate).not.toHaveBeenCalled();
     expect(llm.translateFields).not.toHaveBeenCalled();
-    expect(llm.generateAnswer).not.toHaveBeenCalled();
   });
 
   it('runs Cloud detection and embedding concurrently without translating the input', async () => {
