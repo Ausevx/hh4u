@@ -1,3 +1,4 @@
+import { requestMetadata, timed } from './searchTelemetry';
 import mongoose from 'mongoose';
 import ChatbotSession from '../models/ChatbotSession';
 import ConsultationQuery, { IAnswerBranch } from '../models/ConsultationQuery';
@@ -31,6 +32,7 @@ export interface ConsultationResolutionResponse {
   };
   personalized: boolean;
   language?: string;
+  requestId?: string;
 }
 
 export class ConsultationService {
@@ -173,7 +175,7 @@ export class ConsultationService {
     let answerDoc: IAnswer | null = null;
 
     if (matchedBranch?.resolvedAnswerId) {
-      answerDoc = await Answer.findById(matchedBranch.resolvedAnswerId);
+      answerDoc = await timed('branch_answer_lookup', () => Answer.findById(matchedBranch!.resolvedAnswerId));
     }
 
     if (!answerDoc) {
@@ -214,6 +216,7 @@ export class ConsultationService {
     }
 
     return {
+      ...requestMetadata(),
       success: true,
       sessionId: session._id.toString(),
       matchedBranch: matchedBranch

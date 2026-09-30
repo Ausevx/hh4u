@@ -16,6 +16,7 @@ export interface PersonalizeAnswerParams {
 }
 
 export interface ILLMService {
+  detectLanguage?(text: string, hint?: string): Promise<string>;
   /** Translate a batch of display fields without rewriting the clinical content. */
   translateFields?(fields: Record<string, string>, targetLanguage: string): Promise<Record<string, string>>;
   /**

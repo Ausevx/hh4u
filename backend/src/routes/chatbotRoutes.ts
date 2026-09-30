@@ -1,8 +1,10 @@
 import { Router, Request, Response, NextFunction } from 'express';
+import { searchTelemetry } from '../services/searchTelemetry';
 import chatbotController from '../controllers/chatbotController';
 import { validateSession, InvalidSession } from '../middlewares/authMiddleware';
 
 const router = Router();
+router.use(searchTelemetry);
 
 /**
  * Optional authentication middleware.

@@ -37,7 +37,9 @@ fun ConsultationRoute(
         onSelectCandidate = viewModel::selectCandidate,
         onAnswer = viewModel::answer,
         onSubmit = viewModel::submit,
-        onRetry = { viewModel.start(query, retry = true) }
+        onRetry = { viewModel.start(query, retry = true) },
+        onCancel = viewModel::cancelSearch,
+        onLanguageRetry = { language -> viewModel.start(query, retry = true, language = language) }
     )
 }
 
@@ -48,7 +50,9 @@ fun ConsultationScreen(
     onSelectCandidate: (KnowledgeBaseEntity) -> Unit,
     onAnswer: (String, String) -> Unit,
     onSubmit: () -> Unit,
-    onRetry: () -> Unit
+    onRetry: () -> Unit,
+    onCancel: () -> Unit = {},
+    onLanguageRetry: (String) -> Unit = {}
 ) {
     val tokens = MaterialTheme.trustedTealColors
     val scrollState = rememberScrollState()
@@ -84,6 +88,13 @@ fun ConsultationScreen(
                 Spacer(modifier = Modifier.height(14.dp))
             }
 
+            if (state.error != null && state.questions.isEmpty()) {
+                Row {
+                    listOf("Hindi" to "hi", "Marathi" to "mr", "Hinglish" to "hi-Latn").forEach { (label, code) ->
+                        TextButton(onClick = { onLanguageRetry(code) }) { Text(label) }
+                    }
+                }
+            }
             val result = state.result
             if (result != null) {
                 if (result.offline) {
@@ -204,6 +215,7 @@ fun ConsultationScreen(
                 }
 
                 if (state.loading) {
+                    com.healinghands4u.presentation.components.SearchWaitStatus(onCancel)
                     CircularProgressIndicator(color = tokens.accent, modifier = Modifier.padding(32.dp))
                     Text(
                         text = if (questions.isEmpty()) "Loading consultation questions..." else "Preparing your guidance...",

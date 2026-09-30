@@ -56,7 +56,7 @@ describe('English database search with localized consultation and direct answers
     'searches English and preserves %s through questions and final answer', async language => {
       llm.classifyAndTranslate.mockResolvedValue({ intent: 'MEDICAL', translatedText: 'I have a headache', detectedLanguage: language });
       const start = await new ChatbotService().processQuery({ queryText: 'original language input', intent: 'consultation', language: 'en' });
-      expect(embedding.generateEmbedding).toHaveBeenCalledWith('I have a headache');
+      expect(embedding.generateEmbedding).toHaveBeenCalledWith('original language input');
       expect(start.language).toBe(language);
       expect(start.diagnosticQuestions?.map(q => q.id)).toEqual(['q1', 'q2']);
       expect(start.diagnosticQuestions?.[0].questionText).toBe(`[${language}] Does light make it worse?`);
@@ -110,9 +110,32 @@ describe('English database search with localized consultation and direct answers
     expect(llm.generateAnswer).not.toHaveBeenCalled();
   });
 
-  it('never embeds untranslated text when language detection fails', async () => {
+  it('runs Cloud detection and embedding concurrently without translating the input', async () => {
+    let finish!: (language: string) => void;
+    llm.detectLanguage = jest.fn(() => new Promise<string>(resolve => { finish = resolve; }));
+    const pending = new ChatbotService().processQuery({ queryText: 'mujhe pet dard hai', intent: 'direct_answer' });
+    expect(embedding.generateEmbedding).toHaveBeenCalledWith('mujhe pet dard hai');
+    finish('hi-Latn');
+    const result = await pending;
+    expect(result.language).toBe('hi-Latn');
+    expect(llm.classifyAndTranslate).not.toHaveBeenCalled();
+    expect(llm.generateAnswer).not.toHaveBeenCalled();
+  });
+  it('does not force an answer when the two nearest questions are ambiguous', async () => {
+    (searchLevel1Questions as jest.Mock).mockResolvedValue([
+      { level1QuestionId: questionId, canonicalQuestionText: 'One', score: 0.91 },
+      { level1QuestionId: new mongoose.Types.ObjectId(), canonicalQuestionText: 'Two', score: 0.90 },
+    ]);
+    const needsReview = require('../src/models/NeedsReviewQuery').default;
+    jest.spyOn(needsReview.prototype, 'save').mockResolvedValue({});
+    const result = await new ChatbotService().processQuery({ queryText: 'headache', intent: 'direct_answer' });
+    expect(result.matchConfident).toBe(false);
+    expect(Answer.findOne).not.toHaveBeenCalled();
+  });
+
+  it('does not return an answer when parallel language detection fails', async () => {
     llm.classifyAndTranslate.mockRejectedValue(new Error('Translation unavailable'));
     await expect(new ChatbotService().processQuery({ queryText: 'pet dard', intent: 'consultation' })).rejects.toThrow('Translation unavailable');
-    expect(embedding.generateEmbedding).not.toHaveBeenCalled();
+    expect(embedding.generateEmbedding).toHaveBeenCalledWith('pet dard');
   });
 });

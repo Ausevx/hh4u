@@ -33,7 +33,7 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
 
 // Routes
 app.get('/health', (req: Request, res: Response) => {
-  res.status(200).json({ status: 'ok', message: 'Healing Hands4U API is running' });
+  res.status(200).json({ status: 'ok', message: 'Healing Hands4U API is running', searchFlow: 'multilingual-cloud-v1', revision: process.env.RAILWAY_GIT_COMMIT_SHA || process.env.APP_REVISION || 'local', translationConfigured: !!process.env.GOOGLE_CLOUD_PROJECT });
 });
 
 app.use('/api/auth', authRoutes);

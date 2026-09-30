@@ -43,6 +43,8 @@ data class OfflineAnswerBranch(
 )
 
 data class ChatbotQueryResponse(
+    val language: String? = null,
+    val requestId: String? = null,
     val success: Boolean,
     val sessionId: String? = null,
     val message: String? = null,
@@ -62,6 +64,8 @@ data class ConsultationAnswerRequest(
 )
 
 data class ConsultationResolutionResponse(
+    val language: String? = null,
+    val requestId: String? = null,
     val success: Boolean,
     val sessionId: String? = null,
     val answer: AnswerDto? = null,

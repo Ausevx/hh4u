@@ -12,6 +12,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Job
 import javax.inject.Inject
 
 data class ConsultationUiState(
@@ -34,6 +35,11 @@ class ConsultationViewModel @Inject constructor(
     private val repository: ConsultationDataSource,
     private val savedState: SavedStateHandle
 ) : ViewModel() {
+    private var requestJob: Job? = null
+    fun cancelSearch() {
+        requestJob?.cancel()
+        update(_state.value.copy(loading = false, error = "Request cancelled. Your answers are kept."))
+    }
     private val gson = Gson()
     private val restored = savedState.get<String>("consultation_draft")?.let {
         runCatching { gson.fromJson(it, ConsultationUiState::class.java).copy(loading = false) }.getOrNull()
@@ -47,16 +53,16 @@ class ConsultationViewModel @Inject constructor(
         savedState["consultation_draft"] = gson.toJson(state.copy(candidates = emptyList(), loading = false))
     }
 
-    fun start(query: String, retry: Boolean = false) {
+    fun start(query: String, retry: Boolean = false, language: String? = null) {
         if (_state.value.loading) return
         if (!retry && _state.value.query == query &&
             (_state.value.questions.isNotEmpty() || _state.value.result != null ||
              _state.value.candidates.isNotEmpty() || _state.value.message != null)) return
         if (query.isBlank()) { update(ConsultationUiState(error = "Please enter your symptoms first.")); return }
         update(ConsultationUiState(query = query, loading = true))
-        viewModelScope.launch {
+        requestJob = viewModelScope.launch {
             try {
-                val response = repository.start(query)
+                val response = repository.start(query, language)
                 update(_state.value.copy(loading = false, sessionId = response.sessionId,
                     matchedQuestionId = response.matchedQuestionId, questions = response.questions,
                     candidates = response.candidates, message = response.message))
@@ -82,7 +88,7 @@ class ConsultationViewModel @Inject constructor(
         val draft = _state.value
         if (draft.loading || draft.questions.isEmpty() || draft.questions.any { draft.answers[it.id] !in listOf("yes", "no") }) return
         update(draft.copy(loading = true, error = null))
-        viewModelScope.launch {
+        requestJob = viewModelScope.launch {
             try {
                 val result = repository.resolve(draft.sessionId, draft.matchedQuestionId,
                     draft.questions, draft.answers, draft.offlineEntry)

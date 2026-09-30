@@ -1,69 +1,33 @@
 import { GoogleGenAI } from '@google/genai';
 import { IEmbeddingService } from '../types';
+import { ContentCache } from '../../contentCache';
+import { SearchUnavailableError } from '../serviceError';
 
 export class GeminiEmbeddingService implements IEmbeddingService {
-  private ai: GoogleGenAI;
+  private ai: GoogleGenAI | undefined;
   private model = process.env.GEMINI_EMBEDDING_MODEL || 'gemini-embedding-2';
-  private cache: Map<string, number[]> = new Map();
-  
-  // Matches Atlas Vector Search index (vector_index) and seed dataset dimensionality
-  public readonly dimensions: number = 1536; 
-
-  constructor(apiKey: string) {
-    this.ai = new GoogleGenAI({ apiKey });
-  }
-
+  private cache = new ContentCache('gemini-embedding-raw-v1', 24 * 60 * 60 * 1000, 500);
+  public readonly dimensions = 1536;
+  constructor(apiKey: string) { if (apiKey) this.ai = new GoogleGenAI({ apiKey }); }
   async generateEmbedding(text: string): Promise<number[]> {
-    const trimmed = text || '';
-    if (this.cache.has(trimmed)) {
-      return this.cache.get(trimmed)!;
-    }
-
-    try {
-      const response = await this.ai.models.embedContent({
-        model: this.model,
-        contents: trimmed,
-        config: {
-          outputDimensionality: this.dimensions,
-        },
-      });
-      
-      const values = response.embeddings?.[0]?.values || [];
-      if (values.length > 0) {
-        this.cache.set(trimmed, values);
-      }
-      return values;
-    } catch (error: any) {
-      if (error?.status === 429 || error?.message?.includes('429') || error?.message?.includes('quota') || error?.message?.includes('RESOURCE_EXHAUSTED')) {
-        try {
-          await new Promise((resolve) => setTimeout(resolve, 2000));
-          const retryRes = await this.ai.models.embedContent({
-            model: this.model,
-            contents: trimmed,
-            config: {
-              outputDimensionality: this.dimensions,
-            },
-          });
-          const retryVals = retryRes.embeddings?.[0]?.values || [];
-          if (retryVals.length > 0) {
-            this.cache.set(trimmed, retryVals);
-          }
-          return retryVals;
-        } catch (retryError: any) {
-          console.warn(`[GeminiEmbeddingService] Gemini embedding quota reached (${retryError?.message}). Using deterministic fallback vector.`);
-          const fallbackVector = new Array(this.dimensions).fill(0);
-          for (let i = 0; i < trimmed.length; i++) {
-            fallbackVector[i % this.dimensions] += (trimmed.charCodeAt(i) % 100) / 100;
-          }
-          this.cache.set(trimmed, fallbackVector);
-          return fallbackVector;
-        }
-      }
-      throw error;
-    }
+    // Match the existing database input convention. Model changes require a complete rebuild.
+    const input = text.trim();
+    if (!input || !this.ai) throw new SearchUnavailableError();
+    return this.cache.get([this.model, this.dimensions, input], async () => {
+      const configured = Number(process.env.EMBEDDING_TIMEOUT_MS || 8000);
+      const timeout = Number.isFinite(configured) ? Math.max(1000, Math.min(15000, configured)) : 8000;
+      try {
+        const response = await this.ai!.models.embedContent({ model: this.model, contents: input,
+          config: { outputDimensionality: this.dimensions, httpOptions: { timeout, retryOptions: { attempts: 1 } } } });
+        const values = response.embeddings?.[0]?.values;
+        if (!values || values.length !== this.dimensions || values.some(v => !Number.isFinite(v)) || !values.some(v => v !== 0)) throw new SearchUnavailableError();
+        return values;
+      } catch { throw new SearchUnavailableError(); }
+    });
   }
-
   async generateBatchEmbeddings(texts: string[]): Promise<number[][]> {
-    return Promise.all(texts.map((text) => this.generateEmbedding(text)));
+    const results: number[][] = [];
+    for (let i = 0; i < texts.length; i += 5) results.push(...await Promise.all(texts.slice(i, i + 5).map(text => this.generateEmbedding(text))));
+    return results;
   }
 }

@@ -9,6 +9,8 @@ import Answer from '../models/Answer';
 import ConsultationQuery from '../models/ConsultationQuery';
 import { localizeFields, ANSWER_FIELDS } from './localizationService';
 import { isClearlyEnglish } from './englishQuery';
+import { contentHash } from './contentCache';
+import { timed, requestMetadata } from './searchTelemetry';
 
 export interface ProcessQueryInput {
   text?: string;
@@ -18,6 +20,8 @@ export interface ProcessQueryInput {
   voiceData?: string | Buffer;
   mimeType?: string;
   language?: string;
+  requestId?: string;
+  contentVersion?: string;
   inputMode?: 'text' | 'voice';
   intent: 'direct_answer' | 'consultation';
   userId?: string | mongoose.Types.ObjectId;
@@ -60,6 +64,8 @@ export interface ChatbotQueryResponse {
   needsReviewId?: string;
   matchCandidates: CandidateResult[];
   language?: string;
+  requestId?: string;
+  contentVersion?: string;
 }
 
 
@@ -115,30 +121,23 @@ export class ChatbotService {
       throw new Error('Query text or voiceData is required');
     }
 
-    // Recognized English skips language detection. Uncertain wording uses a cached
-    // detection/translation call, including romanized Indian languages.
-    let userIntent: 'MEDICAL' | 'GREETING' | 'CHITCHAT' | 'UNCLEAR';
-    let translatedQueryText: string;
-    let originalLanguage: string;
+    // Detect language while embedding the original input; never translate before matching.
+    const userIntent = /^(hi|hello|hey|thanks|thank you|नमस्ते|नमस्कार)[!.\s]*$/i.test(originalQueryText) ? 'GREETING' : 'MEDICAL';
+    const languageWork = timed('language', async () => {
+      if (ai.llm.detectLanguage) return ai.llm.detectLanguage(originalQueryText, detectedLang);
+      // Compatibility for explicitly injected test doubles; production uses Cloud only.
+      if (isClearlyEnglish(originalQueryText, detectedLang)) return 'en';
+      if (ai.llm.classifyAndTranslate) return (await ai.llm.classifyAndTranslate(originalQueryText, detectedLang)).detectedLanguage;
+      return (await ai.llm.translateToEnglish(originalQueryText, detectedLang)).detectedLanguage;
+    });
+    const [originalLanguage, queryEmbedding] = await Promise.all([
+      languageWork,
+      userIntent === 'GREETING' ? Promise.resolve([] as number[]) : timed('embedding', () => ai.embedding.generateEmbedding(originalQueryText)),
+    ]);
+    // Legacy field retained for session compatibility; contains the actual search input.
+    const translatedQueryText = originalQueryText;
 
-    if (isClearlyEnglish(originalQueryText, detectedLang)) {
-      originalLanguage = 'en';
-      translatedQueryText = originalQueryText;
-      userIntent = /^(hi|hello|hey|thanks|thank you)[!.\s]*$/i.test(originalQueryText) ? 'GREETING' : 'MEDICAL';
-    } else if (ai.llm.classifyAndTranslate) {
-      const result = await ai.llm.classifyAndTranslate(originalQueryText, detectedLang);
-      userIntent = result.intent;
-      translatedQueryText = result.translatedText || originalQueryText;
-      originalLanguage = result.detectedLanguage || detectedLang || 'en';
-    } else {
-      // Fallback to old sequential method for mock services
-      userIntent = ai.llm.classifyIntent ? await ai.llm.classifyIntent(originalQueryText) : 'MEDICAL';
-      const translation = await ai.llm.translateToEnglish(originalQueryText, detectedLang);
-      translatedQueryText = translation.translatedText || originalQueryText;
-      originalLanguage = translation.detectedLanguage || detectedLang || 'en';
-    }
-
-    if (userIntent === 'GREETING' || userIntent === 'CHITCHAT') {
+    if (userIntent === 'GREETING') {
       // Fast path: skip vector search entirely for casual chat
       const { message: fallbackText } = await localizeFields(ai.llm,
         { message: 'Please describe your symptoms so I can look for saved advice from Dr. Anjali Jariwala.' },
@@ -165,17 +164,15 @@ export class ChatbotService {
         message: fallbackText,
         matchCandidates: [],
       };
-      return { ...response, language: originalLanguage };
+      return { ...response, language: originalLanguage, ...requestMetadata() };
     }
 
-    // 5. Generate 1536-dim Embedding
-    const queryEmbedding = await ai.embedding.generateEmbedding(translatedQueryText);
 
     // 6. Vector Similarity Search against Active Level1Questions
-    const rawCandidates: ScoredCandidate[] = await searchLevel1Questions(
+    const rawCandidates: ScoredCandidate[] = await timed('search', () => searchLevel1Questions(
       queryEmbedding,
       config.topCandidatesCount
-    );
+    ));
 
     const matchCandidates: CandidateResult[] = rawCandidates.map((c) => ({
       level1QuestionId: c.level1QuestionId.toString(),
@@ -184,7 +181,8 @@ export class ChatbotService {
     }));
 
     const topCandidate = rawCandidates.length > 0 ? rawCandidates[0] : null;
-    const matchConfident = !!(topCandidate && topCandidate.score >= config.matchConfidenceThreshold);
+    const matchConfident = !!(topCandidate && topCandidate.score >= config.matchConfidenceThreshold &&
+      (rawCandidates.length < 2 || topCandidate.score - rawCandidates[1].score >= config.matchScoreMargin));
     const confidenceScore = topCandidate ? topCandidate.score : 0;
 
     // 7. Confident Match Branch
@@ -208,7 +206,7 @@ export class ChatbotService {
 
       // 7b. Direct Answer Intent
       if (input.intent === 'direct_answer') {
-        const answerDoc = await Answer.findOne({ level1QuestionId: topCandidate.level1QuestionId, answerType: 'level1' });
+        const answerDoc = await timed('answer_lookup', () => Answer.findOne({ level1QuestionId: topCandidate.level1QuestionId, answerType: 'level1' }));
         if (!answerDoc) {
           const error: any = new Error('The selected database answer is unavailable. Please retry or contact the clinic.');
           error.statusCode = 404;
@@ -242,6 +240,7 @@ export class ChatbotService {
         }, originalLanguage, ANSWER_FIELDS);
 
         const response: ChatbotQueryResponse = {
+          ...requestMetadata(),
           success: true,
           sessionId: session._id.toString(),
           matchConfident: true,
@@ -255,7 +254,7 @@ export class ChatbotService {
           language: originalLanguage,
           matchCandidates,
         };
-        return response;
+        return { ...response, contentVersion: contentHash([answerDoc.answerText, answerDoc.reasonText, answerDoc.remedyText, answerDoc.homeRemedyText, answerDoc.dosageInstructions, answerDoc.safetyDisclaimerText, answerDoc.videoUrl]), ...requestMetadata() };
       }
 
       // 7c. Consultation Intent
@@ -288,6 +287,7 @@ export class ChatbotService {
         const diagnosticQuestions = sourceQuestions.map((q, i) => ({ id: q.id, questionText: translatedQuestions[`question_${i}`] }));
 
         return {
+          ...requestMetadata(),
           success: true,
           sessionId: session._id.toString(),
           matchConfident: true,
@@ -354,7 +354,7 @@ export class ChatbotService {
         answerText: fallbackText,
       }
     };
-    return { ...response, language: originalLanguage };
+    return { ...response, language: originalLanguage, ...requestMetadata() };
   }
 }
 

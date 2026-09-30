@@ -1,0 +1,74 @@
+[
+  {
+    "query": "I have acidity, gas and bloating",
+    "language": "en",
+    "expectedQuestionId": null,
+    "reviewed": false
+  },
+  {
+    "query": "मुझे एसिडिटी और पेट में गैस है",
+    "language": "hi",
+    "expectedQuestionId": null,
+    "reviewed": false
+  },
+  {
+    "query": "मला आम्लपित्त आणि पोटात गॅस होतो",
+    "language": "mr",
+    "expectedQuestionId": null,
+    "reviewed": false
+  },
+  {
+    "query": "mujhe acidity aur gas hai",
+    "language": "hi-Latn",
+    "expectedQuestionId": null,
+    "reviewed": false
+  },
+  {
+    "query": "I do not have a headache, my stomach hurts",
+    "language": "en",
+    "expectedQuestionId": null,
+    "reviewed": false
+  },
+  {
+    "query": "मुझे सिरदर्द नहीं है, पेट में दर्द है",
+    "language": "hi",
+    "expectedQuestionId": null,
+    "reviewed": false
+  },
+  {
+    "query": "मला डोकेदुखी नाही, पोटात दुखते",
+    "language": "mr",
+    "expectedQuestionId": null,
+    "reviewed": false
+  },
+  {
+    "query": "mujhe headache nahi hai pet dard hai",
+    "language": "hi-Latn",
+    "expectedQuestionId": null,
+    "reviewed": false
+  },
+  {
+    "query": "my tummy hurts",
+    "language": "en",
+    "expectedQuestionId": null,
+    "reviewed": false
+  },
+  {
+    "query": "stomch pian",
+    "language": "en",
+    "expectedQuestionId": null,
+    "reviewed": false
+  },
+  {
+    "query": "I feel unwell",
+    "language": "en",
+    "expectedQuestionId": null,
+    "reviewed": false
+  },
+  {
+    "query": "what is the weather",
+    "language": "en",
+    "expectedQuestionId": null,
+    "reviewed": false
+  }
+]

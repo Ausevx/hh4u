@@ -1,5 +1,6 @@
+import { timed } from './searchTelemetry';
 import { ILLMService } from './ai/types';
-import { TranslationUnavailableError } from './ai/gemini/geminiLanguageService';
+import { TranslationUnavailableError } from './ai/serviceError';
 
 /** Translate only display text; IDs, branch conditions, and links remain untouched. */
 export async function localizeFields<T extends Record<string, any>>(
@@ -10,7 +11,7 @@ export async function localizeFields<T extends Record<string, any>>(
   for (const key of keys) if (typeof source[key] === 'string' && source[key].trim()) fields[key] = source[key];
   if (!Object.keys(fields).length) return { ...source };
   if (!llm.translateFields) throw new TranslationUnavailableError();
-  const translated = await llm.translateFields(fields, language);
+  const translated = await timed('translation', () => llm.translateFields!(fields, language));
   const result = { ...source };
   for (const key of Object.keys(fields)) {
     if (typeof translated[key] !== 'string' || !translated[key].trim()) throw new TranslationUnavailableError();

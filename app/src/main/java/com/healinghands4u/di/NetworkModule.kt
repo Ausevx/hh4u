@@ -22,6 +22,18 @@ object NetworkModule {
     @Singleton
     fun provideOkHttpClient(sessionStore: com.healinghands4u.auth.SessionStore): OkHttpClient {
         return OkHttpClient.Builder()
+            .eventListenerFactory {
+                object : okhttp3.EventListener() {
+                    private var start = 0L
+                    override fun callStart(call: okhttp3.Call) { start = android.os.SystemClock.elapsedRealtime() }
+                    override fun callEnd(call: okhttp3.Call) { record(call, "complete") }
+                    override fun callFailed(call: okhttp3.Call, ioe: java.io.IOException) { record(call, "failed") }
+                    private fun record(call: okhttp3.Call, outcome: String) {
+                        if (call.request().url.encodedPath.contains("/chatbot/")) android.util.Log.i("SearchTiming",
+                            "networkMs=${android.os.SystemClock.elapsedRealtime() - start} outcome=$outcome")
+                    }
+                }
+            }
             .addInterceptor { chain ->
                 val original = chain.request()
                 val path = original.url.encodedPath

@@ -1,3 +1,4 @@
+import { SearchUnavailableError } from './ai/serviceError';
 import mongoose, { PipelineStage } from 'mongoose';
 import Level1Question, { ILevel1Question } from '../models/Level1Question';
 import { cosineSimilarity, ScoredCandidate } from '../utils/vectorSimilarity';
@@ -250,7 +251,7 @@ export async function searchLevel1QuestionsDualMode(
       },
     ];
 
-    const results = await Level1Question.aggregate(pipeline).exec();
+    const results = await Level1Question.aggregate(pipeline).option({ maxTimeMS: 3000 }).exec();
 
     // Map results to ScoredCandidate format
     const candidates: ScoredCandidate[] = results.map((doc: any) => ({
@@ -262,7 +263,8 @@ export async function searchLevel1QuestionsDualMode(
 
     return candidates;
   } catch (error) {
-    // Graceful fallback to local in-memory cosine ranking
+    if (process.env.NODE_ENV === 'production' && process.env.ALLOW_VECTOR_SCAN_FALLBACK !== 'true') throw new SearchUnavailableError();
+    // Explicit development-only fallback to local in-memory cosine ranking
     console.warn(
       `[VectorSearch] Atlas $vectorSearch stage unavailable (${(error as Error).message}). Falling back to in-memory cosine ranking.`
     );

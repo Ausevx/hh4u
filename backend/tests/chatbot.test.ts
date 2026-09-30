@@ -258,9 +258,9 @@ describe('Chatbot Engine Backend — Comprehensive Test Suite (R1-R4)', () => {
       expect(answerRes.body.answer).toBeDefined();
       expect(answerRes.body.answer.id).toBe(fixtures.severeMigraineAnswer._id.toString());
       expect(answerRes.body.answer.answerText).toContain('Belladonna 200C and Glonoinum');
-      expect(answerRes.body.answer.personalizedAnswer).toContain('Personalized Homeopathic Plan');
+      expect(answerRes.body.answer.personalizedAnswer).toBe(answerRes.body.answer.answerText);
       expect(answerRes.body.answer.personalizedAnswer).toContain('Belladonna 200C');
-      expect(answerRes.body.personalized).toBe(true);
+      expect(answerRes.body.personalized).toBe(false);
 
       // Verify session updated in MongoDB
       const updatedSession = await ChatbotSession.findById(sessionId);
@@ -373,7 +373,14 @@ describe('Chatbot Engine Backend — Comprehensive Test Suite (R1-R4)', () => {
   // R2: Multilingual & Voice Input
   // ==========================================
   describe('R2: Multilingual and Voice Processing', () => {
-    it('should process Hindi query via LLM translation to English', async () => {
+    it('should search original Hindi input and localize the saved answer', async () => {
+      const ai = getAIServices();
+      (ai.embedding as any).registerEmbedding('मुझे सिरदर्द है', fixtures.headacheQuestion.embedding);
+      ai.llm.detectLanguage = jest.fn().mockResolvedValue('hi');
+      ai.llm.translateFields = jest.fn().mockImplementation(async (fields: Record<string, string>) =>
+        Object.fromEntries(Object.entries(fields).map(([key, value]) => [key, `[hi] ${value}`])));
+      const embeddingSpy = jest.spyOn(ai.embedding, 'generateEmbedding');
+
       const res = await request(app)
         .post('/chatbot/query')
         .send({
@@ -391,7 +398,9 @@ describe('Chatbot Engine Backend — Comprehensive Test Suite (R1-R4)', () => {
       const session = await ChatbotSession.findById(res.body.sessionId);
       expect(session!.originalLanguage).toBe('hi');
       expect(session!.originalQueryText).toBe('मुझे सिरदर्द है');
-      expect(session!.translatedQueryText).toBe('I have a headache');
+      expect(session!.translatedQueryText).toBe('मुझे सिरदर्द है');
+      expect(embeddingSpy).toHaveBeenCalledWith('मुझे सिरदर्द है');
+      expect(res.body.answer.answerText).toContain('[hi]');
     });
 
     it('should process voice input with base64 audio via STT transcription', async () => {

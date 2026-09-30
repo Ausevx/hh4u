@@ -6,7 +6,7 @@ import { MockLLMService } from './mock/mockLLMService';
 import { MockEmbeddingService } from './mock/mockEmbeddingService';
 import { MockSTTService } from './mock/mockSTTService';
 import { MockTTSService } from './mock/mockTTSService';
-import { GeminiLLMService } from './gemini/geminiLLMService';
+import { CloudTranslationService } from './cloudTranslationService';
 import { GeminiEmbeddingService } from './gemini/geminiEmbeddingService';
 
 export interface AIServices {
@@ -30,19 +30,17 @@ export function createDefaultAIServices(): AIServices {
   if (apiKey) {
     console.log("Using Google Gemini AI services");
     return {
-      llm: new GeminiLLMService(apiKey),
+      llm: new CloudTranslationService(),
       embedding: new GeminiEmbeddingService(apiKey),
       stt: new MockSTTService(), // Keep mocks for STT/TTS until implemented
       tts: new MockTTSService(),
     };
   }
 
-  console.log("Using Mock AI services (No GEMINI_API_KEY found)");
+  // Missing production credentials must never return mock matches or invented advice.
   return {
-    llm: new MockLLMService(),
-    embedding: new MockEmbeddingService(),
-    stt: new MockSTTService(),
-    tts: new MockTTSService(),
+    llm: new CloudTranslationService(), embedding: new GeminiEmbeddingService(''),
+    stt: new MockSTTService(), tts: new MockTTSService(),
   };
 }
 

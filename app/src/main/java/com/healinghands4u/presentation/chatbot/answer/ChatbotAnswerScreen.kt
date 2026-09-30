@@ -148,6 +148,7 @@ fun ChatbotAnswerScreen(
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     
+                    com.healinghands4u.presentation.components.SearchWaitStatus(viewModel::cancelSearch)
                     // Skeleton Remedy Card
                     androidx.compose.foundation.layout.Box(
                         modifier = Modifier
@@ -170,6 +171,12 @@ fun ChatbotAnswerScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(state.message, color = MaterialTheme.colorScheme.error)
+                    androidx.compose.material3.TextButton(onClick = { viewModel.retry() }) { Text("Retry") }
+                    Row {
+                        listOf("English" to "en", "हिन्दी" to "hi", "मराठी" to "mr", "Hinglish" to "hi-Latn").forEach { (label, code) ->
+                            androidx.compose.material3.TextButton(onClick = { viewModel.retry(code) }) { Text(label) }
+                        }
+                    }
                 }
             }
             is ChatbotUiState.Success -> {

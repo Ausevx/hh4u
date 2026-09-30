@@ -17,7 +17,7 @@ data class ConsultationStart(
 data class ConsultationResult(val answer: AnswerDto, val offline: Boolean, val notice: String? = null)
 
 interface ConsultationDataSource {
-    suspend fun start(query: String): ConsultationStart
+    suspend fun start(query: String, language: String? = null): ConsultationStart
     suspend fun resolve(sessionId: String?, matchedQuestionId: String?,
         questions: List<DiagnosticQuestionDto>, answers: Map<String, String>,
         offlineEntry: KnowledgeBaseEntity?): ConsultationResult
@@ -27,10 +27,10 @@ class ConsultationRepository @Inject constructor(
     private val api: ChatbotApi,
     private val offline: OfflineSearchRepository
 ) : ConsultationDataSource {
-    override suspend fun start(query: String): ConsultationStart {
+    override suspend fun start(query: String, language: String?): ConsultationStart {
         try {
             if (!offline.isOnline()) throw IOException("No connection")
-            val response = api.queryChatbot(ChatbotQueryRequest(query, "consultation"))
+            val response = api.queryChatbot(ChatbotQueryRequest(query, "consultation", language = language))
             if (!response.success) throw IllegalStateException(response.message ?: "Unable to start consultation.")
             if (response.matchConfident != true || response.fallback == true) {
                 return ConsultationStart(message = response.message ?: "No confident match was found. Please describe your symptoms more specifically.")
@@ -85,8 +85,9 @@ class ConsultationRepository @Inject constructor(
 
     private fun throwIfTranslationUnavailable(error: HttpException) {
         val body = error.response()?.errorBody()?.string().orEmpty()
-        if (body.contains("TRANSLATION_UNAVAILABLE")) {
-            throw IllegalStateException("Translation is temporarily unavailable. Please retry; your answers are kept.")
+        if (listOf("TRANSLATION_UNAVAILABLE", "LANGUAGE_UNCERTAIN", "SEARCH_UNAVAILABLE").any { body.contains(it) }) {
+            val message = runCatching { com.google.gson.Gson().fromJson(body, com.google.gson.JsonObject::class.java).get("message").asString }.getOrNull()
+            throw IllegalStateException(message ?: "Search is temporarily unavailable. Please retry; your answers are kept.")
         }
     }
 

@@ -7,11 +7,8 @@ export interface QueryLanguage {
   detectedLanguage: string;
 }
 
-export class TranslationUnavailableError extends Error {
-  readonly statusCode = 503;
-  readonly code = 'TRANSLATION_UNAVAILABLE';
-  constructor() { super('Translation is temporarily unavailable. Please retry.'); }
-}
+export { TranslationUnavailableError } from '../serviceError';
+import { TranslationUnavailableError } from '../serviceError';
 
 /** Cache language work, never user sessions. Content changes produce new keys. */
 export class GeminiLanguageService {

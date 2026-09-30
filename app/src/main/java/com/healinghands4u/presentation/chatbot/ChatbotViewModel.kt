@@ -38,14 +38,22 @@ class ChatbotViewModel @Inject constructor(
     private val _state = MutableStateFlow<ChatbotUiState>(ChatbotUiState.Idle)
     val state: StateFlow<ChatbotUiState> = _state
     private var queryJob: Job? = null
+    private var lastQuery: String = ""
+    fun retry(language: String? = null) { querySymptoms(lastQuery, language) }
 
-    fun querySymptoms(symptoms: String) {
+    fun cancelSearch() {
+        queryJob?.cancel()
+        _state.value = ChatbotUiState.Error("Search cancelled. You can try again.")
+    }
+
+    fun querySymptoms(symptoms: String, language: String? = null) {
+        lastQuery = symptoms
         queryJob?.cancel()
         queryJob = viewModelScope.launch {
             _state.value = ChatbotUiState.Loading
             if (offlineSearchRepository.isOnline()) {
                 try {
-                    val response = chatbotApi.queryChatbot(ChatbotQueryRequest(queryText = symptoms, intent = "direct_answer"))
+                    val response = chatbotApi.queryChatbot(ChatbotQueryRequest(queryText = symptoms, intent = "direct_answer", language = language))
                     if (response.success) {
                         val answer = response.answer
                         _state.value = ChatbotUiState.Success(
@@ -65,10 +73,13 @@ class ChatbotViewModel @Inject constructor(
                     return@launch
                 } catch (error: Exception) {
                     if (error is CancellationException) throw error
-                    if (error is retrofit2.HttpException &&
-                        error.response()?.errorBody()?.string()?.contains("TRANSLATION_UNAVAILABLE") == true) {
-                        _state.value = ChatbotUiState.Error("Translation is temporarily unavailable. Please retry.")
-                        return@launch
+                    if (error is retrofit2.HttpException) {
+                        val body = error.response()?.errorBody()?.string().orEmpty()
+                        if (listOf("TRANSLATION_UNAVAILABLE", "LANGUAGE_UNCERTAIN", "SEARCH_UNAVAILABLE").any { body.contains(it) }) {
+                            val message = runCatching { com.google.gson.Gson().fromJson(body, com.google.gson.JsonObject::class.java).get("message").asString }.getOrNull()
+                            _state.value = ChatbotUiState.Error(message ?: "Search is temporarily unavailable. Please retry.")
+                            return@launch
+                        }
                     }
                 }
             }

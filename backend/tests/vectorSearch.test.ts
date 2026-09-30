@@ -134,6 +134,7 @@ describe('Vector Search Service & Dual-Mode Query', () => {
 
       // Spy on Level1Question.aggregate to simulate Atlas returning native results
       const aggregateSpy = jest.spyOn(Level1Question, 'aggregate').mockReturnValue({
+        option: jest.fn().mockReturnThis(),
         exec: jest.fn().mockResolvedValue(mockResults),
       } as any);
 
