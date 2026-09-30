@@ -24,6 +24,8 @@ Only output valid JSON. Do not output markdown code blocks, just raw JSON.`;
       model: this.model,
       messages: [{ role: 'user', content: prompt }],
       response_format: { type: 'json_object' },
+      max_tokens: 1024,
+      temperature: 0.1,
     });
 
     try {
@@ -39,6 +41,79 @@ Only output valid JSON. Do not output markdown code blocks, just raw JSON.`;
     }
   }
 
+  async translateFields(fields: Record<string, string>, targetLanguage: string): Promise<Record<string, string>> {
+    const prompt = `Translate the following JSON object's values to ${targetLanguage}.
+Respond with only a valid JSON object containing the same keys with translated string values. Do not use markdown blocks.
+
+${JSON.stringify(fields, null, 2)}`;
+
+    try {
+      const response = await this.ai.chat.completions.create({
+        model: this.model,
+        messages: [{ role: 'user', content: prompt }],
+        response_format: { type: 'json_object' },
+        max_tokens: 2048,
+        temperature: 0.1,
+      });
+      const textResponse = response.choices[0]?.message?.content || '{}';
+      return JSON.parse(textResponse);
+    } catch (e) {
+      console.error('Groq translateFields error', e);
+      return fields;
+    }
+  }
+
+  async classifyAndTranslate(text: string, sourceLanguage?: string): Promise<{ intent: 'MEDICAL' | 'GREETING' | 'CHITCHAT' | 'UNCLEAR'; translatedText: string; detectedLanguage: string }> {
+    const prompt = `Analyze the following text. 
+Source language: ${sourceLanguage || 'Auto-detect'}
+Text: "${text}"
+
+Determine if the intent is MEDICAL, GREETING, CHITCHAT, or UNCLEAR.
+Translate the text to English. If it is already in English, output the original text.
+Detect the original language of the text.
+
+Respond with a JSON object containing three fields:
+- intent: The classified intent (MEDICAL, GREETING, CHITCHAT, or UNCLEAR)
+- translatedText: The English translation
+- detectedLanguage: The detected original language.
+
+Only output valid JSON.`;
+
+    try {
+      const response = await this.ai.chat.completions.create({
+        model: this.model,
+        messages: [{ role: 'user', content: prompt }],
+        response_format: { type: 'json_object' },
+        max_tokens: 1024,
+        temperature: 0.1,
+      });
+      const textResponse = response.choices[0]?.message?.content || '{}';
+      const data = JSON.parse(textResponse);
+      return {
+        intent: data.intent || 'MEDICAL',
+        translatedText: data.translatedText || text,
+        detectedLanguage: data.detectedLanguage || sourceLanguage || 'en',
+      };
+    } catch (e) {
+      console.error('Groq classifyAndTranslate error', e);
+      return { intent: 'MEDICAL', translatedText: text, detectedLanguage: sourceLanguage || 'en' };
+    }
+  }
+
+  async generateConversationalResponse(userMessage: string, targetLanguage?: string): Promise<string> {
+    const response = await this.ai.chat.completions.create({
+      model: this.model,
+      messages: [
+        { role: 'system', content: `You are a helpful and friendly homeopathic assistant. If a language is specified, respond in that language. Target language: ${targetLanguage || 'English'}` },
+        { role: 'user', content: `The user said: "${userMessage}"\nRespond in a friendly conversational manner and ask them to describe their medical symptoms so you can help them. Do not output just a few words. Provide a complete, conversational response.` }
+      ],
+      max_tokens: 512,
+      temperature: 0.7,
+    });
+
+    return response.choices[0]?.message?.content || 'Please describe your symptoms so I can look for saved advice.';
+  }
+
   async generateAnswer(prompt: string, context?: Record<string, any>): Promise<string> {
     let fullPrompt = prompt;
     if (context && Object.keys(context).length > 0) {
@@ -47,26 +122,28 @@ Only output valid JSON. Do not output markdown code blocks, just raw JSON.`;
 
     const response = await this.ai.chat.completions.create({
       model: this.model,
-      messages: [{ role: 'user', content: fullPrompt }],
+      messages: [
+        { role: 'system', content: 'You are a helpful, professional, and empathetic homeopathic chatbot assistant.' },
+        { role: 'user', content: fullPrompt }
+      ],
+      max_tokens: 2048,
+      temperature: 0.7,
     });
 
     return response.choices[0]?.message?.content || 'I am sorry, I could not generate an answer.';
   }
 
   async generatePersonalizedAnswer(params: PersonalizeAnswerParams): Promise<string> {
-    const prompt = `You are a helpful, professional, and empathetic homeopathic chatbot assistant.
-Based on the following information, provide a personalized response to the user.
-
-Original Query: "${params.originalQuery}"
-Standard Template Answer: "${params.templateText}"
-User Language Preference: ${params.userLanguage || 'English'}
-Additional Context: ${JSON.stringify(params.additionalContext || {})}
-
-Ensure the response is compassionate, medically safe (include a disclaimer if necessary), and accurately reflects the standard template advice in the requested language.`;
-
     const response = await this.ai.chat.completions.create({
       model: this.model,
-      messages: [{ role: 'user', content: prompt }],
+      messages: [
+        { role: 'system', content: `You are a homeopathic assistant. Your task is to output a VERY BRIEF, single-sentence greeting acknowledging the user's query, followed IMMEDIATELY by the exact 'Standard Template Answer' provided. DO NOT add any extra fluff, long paragraphs, or conversational filler. The output should be as close to the raw database answer as possible while still sounding natural. Translate the response to the user's language preference if necessary.` },
+        { role: 'user', content: `Original Query: "${params.originalQuery}"
+Standard Template Answer: "${params.templateText}"
+User Language Preference: ${params.userLanguage || 'English'}` }
+      ],
+      max_tokens: 1024,
+      temperature: 0.1,
     });
 
     return response.choices[0]?.message?.content || params.templateText;
