@@ -67,6 +67,11 @@ fun WellnessAssistantScreen(
                             style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
                             color = tokens.accent
                         )
+                        Text(
+                            text = "v${com.healinghands4u.BuildConfig.VERSION_NAME} (build ${com.healinghands4u.BuildConfig.VERSION_CODE})",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = tokens.inkDim
+                        )
                     }
 
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -184,7 +189,7 @@ fun WellnessAssistantScreen(
                         icon = Icons.Default.LocalDining,
                         title = "Acidity & Gas",
                         onClick = {
-                            pendingQuery = "Acidity and gas relief with Ayurvedic remedies"
+                            pendingQuery = "Why do I have acidity and gas almost every day?"
                             showModeSheet = true
                         }
                     )
@@ -193,7 +198,7 @@ fun WellnessAssistantScreen(
                         icon = Icons.Default.Bedtime,
                         title = "Better Sleep",
                         onClick = {
-                            pendingQuery = "Natural herbs and evening rituals for better sleep"
+                            pendingQuery = "Why am I having trouble sleeping?"
                             showModeSheet = true
                         }
                     )
@@ -204,7 +209,7 @@ fun WellnessAssistantScreen(
                         icon = Icons.Default.FavoriteBorder,
                         title = "Blood Pressure",
                         onClick = {
-                            pendingQuery = "Holistic lifestyle changes for blood pressure balance"
+                            pendingQuery = "Can I control my BP naturally?"
                             showModeSheet = true
                         }
                     )
@@ -213,7 +218,7 @@ fun WellnessAssistantScreen(
                         icon = Icons.Default.ChildCare,
                         title = "Child Immunity",
                         onClick = {
-                            pendingQuery = "Gentle Ayurvedic nutrition and wellness for children"
+                            pendingQuery = "What foods should I give my child for healthy growth?"
                             showModeSheet = true
                         }
                     )

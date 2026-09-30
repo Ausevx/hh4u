@@ -78,6 +78,16 @@ export const DashboardPage: React.FC = () => {
 
   const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
 
+  // Backend version state
+  const [backendVersion, setBackendVersion] = useState<{ version: string; buildDate: string; revision: string; changelog: string[] } | null>(null);
+
+  useEffect(() => {
+    fetch('/health')
+      .then(r => r.json())
+      .then(d => setBackendVersion({ version: d.version || '?', buildDate: d.buildDate || '?', revision: d.revision || '?', changelog: d.changelog || [] }))
+      .catch(() => {});
+  }, []);
+
   // Debounce search query by 350ms
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -283,29 +293,64 @@ export const DashboardPage: React.FC = () => {
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-        {/* Android Live Backend Sync Informational Banner */}
-        <div className="bg-sky-50 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-800/60 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xs">
-          <div className="flex items-start space-x-3.5">
-            <div className="w-10 h-10 rounded-xl bg-sky-100 dark:bg-sky-900/50 flex items-center justify-center text-sky-600 dark:text-sky-400 flex-shrink-0 mt-0.5">
-              <Info className="w-5 h-5" />
+        {/* Version Info Banner */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* APK Version Card */}
+          <div className="bg-white dark:bg-black border border-gray-200 dark:border-gray-800 rounded-2xl p-4 sm:p-5 shadow-sm">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center space-x-2">
+                <span className="text-lg">📱</span>
+                <h2 className="text-sm font-bold text-gray-900 dark:text-white">Android App</h2>
+              </div>
+              <span className="px-2 py-0.5 bg-black dark:bg-white text-white dark:text-black text-[10px] font-bold rounded-full">
+                v2.0 · build 5
+              </span>
             </div>
-            <div>
-              <h2 className="text-sm font-bold text-gray-900 dark:text-gray-100">
-                Android Mobile App (Live Backend Sync)
-              </h2>
-              <p className="text-xs text-gray-600 dark:text-gray-300 mt-0.5 leading-relaxed">
-                This APK connects to the live backend. Database changes via upload take effect immediately — no APK rebuild needed.
-              </p>
-            </div>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-3 leading-relaxed">
+              Connects to the live backend. DB changes take effect immediately — no rebuild needed.
+            </p>
+            <a
+              href="/healing-hands-4u.apk"
+              download
+              className="inline-flex items-center px-3 py-1.5 border border-gray-300 dark:border-gray-700 rounded-lg text-xs font-semibold text-black dark:text-white bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
+            >
+              <Download className="w-3.5 h-3.5 mr-1.5" />
+              Download APK v2.0 (build 5)
+            </a>
           </div>
-          <a
-            href="/healing-hands-4u.apk"
-            download
-            className="inline-flex items-center px-3.5 py-2 border border-sky-300 dark:border-sky-700 rounded-xl text-xs font-semibold text-sky-900 dark:text-sky-200 bg-white dark:bg-sky-900/40 hover:bg-sky-100 dark:hover:bg-sky-900/70 transition-colors shadow-xs flex-shrink-0 cursor-pointer"
-          >
-            <Download className="w-3.5 h-3.5 mr-1.5" />
-            <span>Download APK</span>
-          </a>
+
+          {/* Backend Version Card */}
+          <div className="bg-white dark:bg-black border border-gray-200 dark:border-gray-800 rounded-2xl p-4 sm:p-5 shadow-sm">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center space-x-2">
+                <span className="text-lg">⚙️</span>
+                <h2 className="text-sm font-bold text-gray-900 dark:text-white">Live Backend</h2>
+              </div>
+              {backendVersion ? (
+                <span className="px-2 py-0.5 bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300 text-[10px] font-bold rounded-full">
+                  v{backendVersion.version} · {backendVersion.revision}
+                </span>
+              ) : (
+                <span className="px-2 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-500 text-[10px] font-bold rounded-full animate-pulse">
+                  loading…
+                </span>
+              )}
+            </div>
+            {backendVersion ? (
+              <ul className="space-y-1.5">
+                {backendVersion.changelog.map((entry, i) => (
+                  <li key={i} className="flex items-start space-x-1.5">
+                    <span className="text-gray-400 dark:text-gray-600 text-xs mt-0.5 flex-shrink-0">
+                      {i === 0 ? '🟢' : '⚪'}
+                    </span>
+                    <span className="text-[11px] text-gray-600 dark:text-gray-400 leading-snug">{entry}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-xs text-gray-400 dark:text-gray-600">Fetching backend version…</p>
+            )}
+          </div>
         </div>
 
         {/* KPI Stat Cards */}
