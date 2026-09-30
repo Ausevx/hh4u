@@ -8,6 +8,7 @@ import { MockSTTService } from './mock/mockSTTService';
 import { MockTTSService } from './mock/mockTTSService';
 import { GeminiLLMService } from './gemini/geminiLLMService';
 import { GeminiEmbeddingService } from './gemini/geminiEmbeddingService';
+import { GroqLLMService } from './groq/groqLLMService';
 
 export interface AIServices {
   llm: ILLMService;
@@ -17,7 +18,9 @@ export interface AIServices {
 }
 
 export function createDefaultAIServices(): AIServices {
-  const apiKey = process.env.GEMINI_API_KEY;
+  const geminiApiKey = process.env.GEMINI_API_KEY;
+  const groqApiKey = process.env.GROQ_API_KEY;
+  
   if (process.env.USE_MOCK_AI === 'true') {
     return {
       llm: new MockLLMService(),
@@ -27,21 +30,31 @@ export function createDefaultAIServices(): AIServices {
     };
   }
 
-  if (apiKey) {
-    console.log("Using Google Gemini AI services");
-    return {
-      llm: new GeminiLLMService(apiKey),
-      embedding: new GeminiEmbeddingService(apiKey),
-      stt: new MockSTTService(), // Keep mocks for STT/TTS until implemented
-      tts: new MockTTSService(),
-    };
+  // Use Groq for LLM if available, otherwise Gemini
+  let llmService: ILLMService = new MockLLMService();
+  if (groqApiKey) {
+    console.log("Using Groq AI for LLM (Llama 3.1 70B)");
+    llmService = new GroqLLMService(groqApiKey);
+  } else if (geminiApiKey) {
+    console.log("Using Google Gemini AI for LLM");
+    llmService = new GeminiLLMService(geminiApiKey);
+  } else {
+    console.log("Using Mock AI for LLM (No API keys found)");
   }
 
-  console.log("Using Mock AI services (No GEMINI_API_KEY found)");
+  // Groq doesn't provide embeddings, so fallback to Gemini or Mock
+  let embeddingService: IEmbeddingService = new MockEmbeddingService();
+  if (geminiApiKey) {
+    console.log("Using Google Gemini AI for Embeddings");
+    embeddingService = new GeminiEmbeddingService(geminiApiKey);
+  } else {
+    console.log("Using Mock AI for Embeddings");
+  }
+
   return {
-    llm: new MockLLMService(),
-    embedding: new MockEmbeddingService(),
-    stt: new MockSTTService(),
+    llm: llmService,
+    embedding: embeddingService,
+    stt: new MockSTTService(), // Keep mocks for STT/TTS until implemented
     tts: new MockTTSService(),
   };
 }
@@ -54,8 +67,11 @@ let isCustomInjected = false;
  * Dynamically re-evaluates process.env.GEMINI_API_KEY if currently mocked.
  */
 export function getAIServices(): AIServices {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!isCustomInjected && apiKey && process.env.USE_MOCK_AI !== 'true' && (activeServices.llm instanceof MockLLMService || activeServices.embedding instanceof MockEmbeddingService)) {
+  const geminiApiKey = process.env.GEMINI_API_KEY;
+  const groqApiKey = process.env.GROQ_API_KEY;
+  const hasKey = geminiApiKey || groqApiKey;
+  
+  if (!isCustomInjected && hasKey && process.env.USE_MOCK_AI !== 'true' && (activeServices.llm instanceof MockLLMService || activeServices.embedding instanceof MockEmbeddingService)) {
     activeServices = createDefaultAIServices();
   }
   return activeServices;
