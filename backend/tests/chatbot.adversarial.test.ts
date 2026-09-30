@@ -334,7 +334,7 @@ describe('Chatbot Engine Backend — Adversarial & Boundary Test Suite', () => {
 
       expect(res.status).toBe(500);
       expect(res.body.success).toBe(false);
-      expect(res.body.message).toContain('LLM Translation Service Timeout');
+      expect(res.body.message).toContain('LLM Service Unavailable');
     });
   });
 

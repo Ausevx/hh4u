@@ -4,7 +4,7 @@ import { GeminiLanguageService } from './geminiLanguageService';
 
 export class GeminiLLMService implements ILLMService {
   private ai: GoogleGenAI;
-  private model = process.env.GEMINI_LLM_MODEL || 'gemini-3.5-flash';
+  private model = process.env.GEMINI_LLM_MODEL || 'gemini-1.5-flash';
   private languageService: GeminiLanguageService;
 
   constructor(apiKey: string) {
@@ -21,7 +21,7 @@ export class GeminiLLMService implements ILLMService {
     }
 
     // Simplified: try primary model, then one fallback. No exponential backoff cascade.
-    const modelsToTry = [this.model, 'gemini-3.5-flash'].filter((m, i, arr) => arr.indexOf(m) === i);
+    const modelsToTry = [this.model, 'gemini-1.5-flash'].filter((m, i, arr) => arr.indexOf(m) === i);
 
     let lastError: any;
     for (const model of modelsToTry) {
@@ -89,7 +89,7 @@ Respond with a JSON object containing a single field "intent" with one of the fo
     try {
       // Use the lightest, fastest model for classification
       const response = await this.ai.models.generateContent({
-        model: 'gemini-3.5-flash',
+        model: 'gemini-1.5-flash',
         contents: prompt,
         config: {
           responseMimeType: 'application/json',
@@ -217,26 +217,20 @@ CRITICAL INSTRUCTION: Do NOT use any markdown formatting (no hashes #, no asteri
   }
 
   async generatePersonalizedAnswer(params: PersonalizeAnswerParams): Promise<string> {
-    const prompt = `You are a helpful, professional, and empathetic homeopathic chatbot assistant representing Dr. Anjali Jariwala at Healing Hands4U.
-Based on the following information, provide a personalized response to the user.
-
-Original Query: "${params.originalQuery}"
-Standard Template Answer: "${params.templateText}"
-User Language Preference: ${params.userLanguage || 'English'}
-Additional Context: ${JSON.stringify(params.additionalContext || {})}
-
-Your task is simply to map the user's specific context to the provided 'Standard Template Answer'. Briefly (in 1-2 sentences) acknowledge their symptoms, and then present the template answer exactly as provided. Do NOT hallucinate long extra medical advice.
-
-CRITICAL INSTRUCTION: Do NOT use any markdown formatting (no hashes, no asterisks for bolding). Use plain text suitable for a standard mobile chat bubble. Keep the response very concise (max 3 sentences) and include 1 or 2 friendly emojis.`;
-
     try {
       const response = await this.generateContentWithFallback({
-        contents: prompt,
+        contents: `You are a helpful assistant. Generate ONLY a brief greeting or introductory phrase (e.g., "Hello!", "I can help with that.") in ${params.userLanguage || 'English'} based on the user's query. Output nothing else. Do not provide medical advice or answer the question.\nUser query: "${params.originalQuery}"`,
       });
-      return response.text || `Personalized Homeopathic Plan for "${params.originalQuery}": ${params.templateText}`;
+
+      const greeting = response.text?.trim() || '';
+      
+      if (greeting && !greeting.toLowerCase().includes('here is')) {
+        return `${greeting}\n\n${params.templateText}`;
+      }
+      return params.templateText;
     } catch (err: any) {
       console.warn(`[GeminiLLMService] Gemini API quota/rate-limit reached (${err?.message}). Generating dynamic personalized fallback.`);
-      return `Personalized Homeopathic Plan for "${params.originalQuery}":\n${params.templateText}`;
+      return params.templateText;
     }
   }
 }

@@ -1,36 +1,22 @@
-import { config } from 'dotenv';
-config();
-import { GeminiLLMService } from './src/services/ai/gemini/geminiLLMService';
-import { GeminiEmbeddingService } from './src/services/ai/gemini/geminiEmbeddingService';
-
-async function test() {
-  console.log('Testing Gemini API...');
-  
+import { GoogleGenAI } from '@google/genai';
+import * as dotenv from 'dotenv';
+dotenv.config();
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+async function run() {
   try {
-    const apiKey = process.env.GEMINI_API_KEY || '';
-    const llm = new GeminiLLMService(apiKey);
-    console.log('LLM Service initialized');
-    
-    console.log('\n--- Conversational Test (Greeting) ---');
-    const resp1 = await llm.generateConversationalResponse('yo');
-    console.log('Response:', resp1);
-
-    console.log('\n--- Conversational Test (Non-medical) ---');
-    const resp2 = await llm.generateConversationalResponse('how is the weather?');
-    console.log('Response:', resp2);
-
-    console.log('\n--- Conversational Test (Vague medical) ---');
-    const resp3 = await llm.generateConversationalResponse('I feel sick');
-    console.log('Response:', resp3);
-    
-    const embed = new GeminiEmbeddingService(apiKey);
-    console.log('\n--- Embedding Test ---');
-    const emb1 = await embed.generateEmbedding('vomiting');
-    console.log(`Embedding generated, length: ${emb1.length}`);
-    
-  } catch (err: any) {
-    console.error('Error testing Gemini API:', err);
-  }
+    const response = await ai.models.generateContent({
+      model: 'gemini-3.5-flash',
+      contents: JSON.stringify({ message: "i have a orange eye", languageHint: "auto" }),
+      config: {
+        systemInstruction: `Detect the actual language and translate the user message faithfully into English in ONE step.\nReturn only JSON {"intent":"...","translatedText":"English text","detectedLanguage":"code"}.`,
+        responseMimeType: 'application/json', temperature: 0,
+        responseJsonSchema: { type: 'object', properties: {
+          intent: { type: 'string', enum: ['MEDICAL', 'GREETING', 'CHITCHAT', 'UNCLEAR'] },
+          translatedText: { type: 'string' }, detectedLanguage: { type: 'string' },
+        }, required: ['intent', 'translatedText', 'detectedLanguage'], additionalProperties: false }
+      },
+    });
+    console.log(response.text);
+  } catch (e) { console.error(e); }
 }
-
-test();
+run();

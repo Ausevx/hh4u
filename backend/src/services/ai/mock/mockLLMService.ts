@@ -21,12 +21,19 @@ export class MockLLMService implements ILLMService {
     });
   }
 
-  
   public async classifyIntent(text: string): Promise<'MEDICAL' | 'GREETING' | 'CHITCHAT' | 'UNCLEAR'> {
     const lower = text.toLowerCase();
     if (lower.match(/^(hi|hello|hey|yo)/)) return 'GREETING';
     if (lower.includes('weather') || lower.includes('joke')) return 'CHITCHAT';
     return 'MEDICAL';
+  }
+
+  public async translateFields(fields: Record<string, string>, targetLanguage: string): Promise<Record<string, string>> {
+    const translated: Record<string, string> = {};
+    for (const [k, v] of Object.entries(fields)) {
+      translated[k] = targetLanguage === 'hi' ? `Translated: ${v}` : `[${targetLanguage}] ${v}`;
+    }
+    return translated;
   }
 
   public async translateToEnglish(text: string, sourceLanguage?: string): Promise<TranslateResult> {
@@ -80,23 +87,9 @@ export class MockLLMService implements ILLMService {
   }
 
   public async generatePersonalizedAnswer(params: PersonalizeAnswerParams): Promise<string> {
-    const { originalQuery, templateText, userLanguage, additionalContext } = params;
-    
-    let symptomsSummary = '';
-    if (additionalContext?.answers) {
-      const positiveSymptoms: string[] = [];
-      const answersObj = additionalContext.answers;
-      for (const [qId, ans] of Object.entries(answersObj)) {
-        if (ans === 'yes') {
-          positiveSymptoms.push(qId);
-        }
-      }
-      if (positiveSymptoms.length > 0) {
-        symptomsSummary = ` (Affirmed symptoms: ${positiveSymptoms.join(', ')})`;
-      }
-    }
-
+    const { templateText, userLanguage } = params;
     const languageNote = userLanguage && userLanguage !== 'en' ? ` [Localized for ${userLanguage}]` : '';
-    return `Personalized Homeopathic Plan for "${originalQuery}"${symptomsSummary}: ${templateText}${languageNote}`;
+    // Reflect the new strict behavior: brief greeting + exact template text
+    return `Hello! ${templateText}${languageNote}`;
   }
 }

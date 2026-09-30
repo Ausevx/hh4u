@@ -123,21 +123,25 @@ export class ChatbotService {
 
     // Detect language while embedding the original input; never translate before matching.
     const userIntent = /^(hi|hello|hey|thanks|thank you|नमस्ते|नमस्कार)[!.\s]*$/i.test(originalQueryText) ? 'GREETING' : 'MEDICAL';
-    const languageWork = timed('language', async () => {
+    const languageWorkPromise = timed('language', async () => {
       if (ai.llm.detectLanguage) return ai.llm.detectLanguage(originalQueryText, detectedLang);
-      // Compatibility for explicitly injected test doubles; production uses Cloud only.
       if (isClearlyEnglish(originalQueryText, detectedLang)) return 'en';
       if (ai.llm.classifyAndTranslate) return (await ai.llm.classifyAndTranslate(originalQueryText, detectedLang)).detectedLanguage;
       return (await ai.llm.translateToEnglish(originalQueryText, detectedLang)).detectedLanguage;
     });
-    const [originalLanguage, queryEmbedding] = await Promise.all([
-      languageWork,
-      userIntent === 'GREETING' ? Promise.resolve([] as number[]) : timed('embedding', () => ai.embedding.generateEmbedding(originalQueryText)),
-    ]);
+
+    languageWorkPromise.catch(() => {});
+
+    const queryEmbedding = await (userIntent === 'GREETING'
+      ? Promise.resolve([] as number[])
+      : timed('embedding', () => ai.embedding.generateEmbedding(originalQueryText)));
+
     // Legacy field retained for session compatibility; contains the actual search input.
     const translatedQueryText = originalQueryText;
+    let originalLanguage: string;
 
     if (userIntent === 'GREETING') {
+      originalLanguage = await languageWorkPromise;
       // Fast path: skip vector search entirely for casual chat
       const { message: fallbackText } = await localizeFields(ai.llm,
         { message: 'Please describe your symptoms so I can look for saved advice from Dr. Anjali Jariwala.' },
@@ -173,6 +177,7 @@ export class ChatbotService {
       queryEmbedding,
       config.topCandidatesCount
     ));
+    originalLanguage = await languageWorkPromise;
 
     const matchCandidates: CandidateResult[] = rawCandidates.map((c) => ({
       level1QuestionId: c.level1QuestionId.toString(),
@@ -181,8 +186,7 @@ export class ChatbotService {
     }));
 
     const topCandidate = rawCandidates.length > 0 ? rawCandidates[0] : null;
-    const matchConfident = !!(topCandidate && topCandidate.score >= config.matchConfidenceThreshold &&
-      (rawCandidates.length < 2 || topCandidate.score - rawCandidates[1].score >= config.matchScoreMargin));
+    const matchConfident = !!(topCandidate && topCandidate.score >= config.matchConfidenceThreshold);
     const confidenceScore = topCandidate ? topCandidate.score : 0;
 
     // 7. Confident Match Branch

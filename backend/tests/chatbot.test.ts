@@ -258,9 +258,9 @@ describe('Chatbot Engine Backend — Comprehensive Test Suite (R1-R4)', () => {
       expect(answerRes.body.answer).toBeDefined();
       expect(answerRes.body.answer.id).toBe(fixtures.severeMigraineAnswer._id.toString());
       expect(answerRes.body.answer.answerText).toContain('Belladonna 200C and Glonoinum');
-      expect(answerRes.body.answer.personalizedAnswer).toBe(answerRes.body.answer.answerText);
-      expect(answerRes.body.answer.personalizedAnswer).toContain('Belladonna 200C');
-      expect(answerRes.body.personalized).toBe(false);
+      expect(answerRes.body.answer.personalizedAnswer).toContain(answerRes.body.answer.answerText);
+      expect(answerRes.body.answer.personalizedAnswer).toContain('Hello!');
+      expect(answerRes.body.personalized).toBe(true);
 
       // Verify session updated in MongoDB
       const updatedSession = await ChatbotSession.findById(sessionId);

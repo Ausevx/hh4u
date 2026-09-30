@@ -10,7 +10,6 @@ export const DEFAULT_FALLBACK_MESSAGE =
 
 export interface IChatbotConfig {
   matchConfidenceThreshold: number;
-  matchScoreMargin: number;
   topCandidatesCount: number;
   fallbackMessage: string;
 }
@@ -22,8 +21,6 @@ export function getChatbotConfig(): IChatbotConfig {
   const envThreshold = process.env.MATCH_CONFIDENCE_THRESHOLD;
   const parsedThreshold = Number(envThreshold ?? DEFAULT_MATCH_CONFIDENCE_THRESHOLD);
   const matchConfidenceThreshold = Number.isFinite(parsedThreshold) && parsedThreshold >= 0 && parsedThreshold <= 1 ? parsedThreshold : DEFAULT_MATCH_CONFIDENCE_THRESHOLD;
-  const parsedMargin = Number(process.env.MATCH_SCORE_MARGIN ?? 0.03);
-  const matchScoreMargin = Number.isFinite(parsedMargin) && parsedMargin >= 0 && parsedMargin <= 1 ? parsedMargin : 0.03;
 
   const envTopK = process.env.TOP_CANDIDATES_COUNT;
   const topCandidatesCount = envTopK !== undefined ? parseInt(envTopK, 10) : DEFAULT_TOP_CANDIDATES_COUNT;
@@ -32,7 +29,6 @@ export function getChatbotConfig(): IChatbotConfig {
 
   return {
     matchConfidenceThreshold,
-    matchScoreMargin,
     topCandidatesCount,
     fallbackMessage,
   };

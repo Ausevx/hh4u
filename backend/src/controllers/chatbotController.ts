@@ -79,6 +79,7 @@ export class ChatbotController {
 
       res.status(200).json(response);
     } catch (error: any) {
+      console.error('CHATBOT QUERY ERROR:', error);
       let status = error.statusCode;
       if (!status) {
         if (

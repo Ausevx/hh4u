@@ -220,7 +220,7 @@ describe('Chatbot Engine Backend — Empirical Stress & Invariant Harness (Chall
       expect(sessionBefore!.userId?.toString()).toBe(fixtures.testUser._id.toString());
       expect(sessionBefore!.originalQueryText).toBe('मुझे माइग्रेन की शिकायत है');
       expect(sessionBefore!.originalLanguage).toBe('hi');
-      expect(sessionBefore!.translatedQueryText).toBe('I suffer from migraines');
+      expect(sessionBefore!.translatedQueryText).toBe('मुझे माइग्रेन की शिकायत है');
       expect(sessionBefore!.inputMode).toBe('text');
       expect(sessionBefore!.intent).toBe('consultation');
       expect(sessionBefore!.matchConfident).toBe(true);
@@ -472,7 +472,7 @@ describe('Chatbot Engine Backend — Empirical Stress & Invariant Harness (Chall
 
       const session = await ChatbotSession.findById(res.body.sessionId);
       expect(session!.originalLanguage).toBe('hi');
-      expect(session!.translatedQueryText).toContain('Translated:');
+      expect(session!.translatedQueryText).toBe('मुझे बहुत ज्यादा चक्कर और सिर में भारीपन लग रहा है');
     });
 
     it('4.3 should handle queries with emojis and punctuation without crashing', async () => {

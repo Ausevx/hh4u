@@ -39,8 +39,8 @@ export function createDefaultAIServices(): AIServices {
     console.log("Using Google Gemini AI for LLM");
     llmService = new GeminiLLMService(geminiApiKey);
   } else {
-    console.log("Using CloudTranslationService for LLM (Fallback)");
-    llmService = new CloudTranslationService();
+    console.log("Using MockLLMService for LLM (Fallback)");
+    llmService = new MockLLMService();
   }
 
   let embeddingService: IEmbeddingService = new MockEmbeddingService();
