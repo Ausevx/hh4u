@@ -3,7 +3,7 @@ import { ILLMService, PersonalizeAnswerParams, TranslateResult } from '../types'
 
 export class GroqLLMService implements ILLMService {
   private ai: Groq;
-  private model = 'openai/gpt-oss-20b';
+  private model = 'llama3-70b-8192';
 
   constructor(apiKey: string) {
     this.ai = new Groq({ apiKey });
@@ -135,21 +135,8 @@ Only output valid JSON.`;
 
   async generatePersonalizedAnswer(params: PersonalizeAnswerParams): Promise<string> {
     try {
-      const response = await this.ai.chat.completions.create({
-        model: this.model,
-        messages: [
-          { role: 'system', content: `You are a helpful assistant. Generate ONLY a brief greeting or introductory phrase (e.g., "Hello!", "I can help with that.") in ${params.userLanguage || 'English'} based on the user's query. Output nothing else. Do not provide medical advice or answer the question.` },
-          { role: 'user', content: `User query: "${params.originalQuery}"` }
-        ],
-        max_tokens: 50,
-        temperature: 0.1,
-      });
-
-      const greeting = response.choices[0]?.message?.content?.trim() || '';
-      
-      if (greeting && !greeting.toLowerCase().includes('here is')) {
-        return `${greeting}\n\n${params.templateText}`;
-      }
+      // We will skip calling the LLM entirely for the greeting to ensure ZERO hallucinated medical advice.
+      // We just return the exact database template.
       return params.templateText;
     } catch (e) {
       console.error('Groq generatePersonalizedAnswer error', e);
