@@ -31,7 +31,7 @@ const AnswerSchema: Schema = new Schema(
       trim: true,
       index: true,
       default: function (this: any) {
-        return this.answerText || 'General Consultation Question';
+        return this?.answerText || 'General Consultation Question';
       },
     },
     answerType: {
@@ -46,10 +46,10 @@ const AnswerSchema: Schema = new Schema(
       required: true,
       trim: true,
       default: function (this: any) {
-        if (this.remedyText && this.reasonText) {
+        if (this?.remedyText && this?.reasonText) {
           return `${this.reasonText}\n\n${this.remedyText}`;
         }
-        return this.remedyText || this.reasonText || 'Homeopathic guidance.';
+        return this?.remedyText || this?.reasonText || 'Homeopathic guidance.';
       },
     },
     reasonText: {
@@ -60,14 +60,14 @@ const AnswerSchema: Schema = new Schema(
       type: String,
       trim: true,
       default: function (this: any) {
-        return this.homeRemedyText || undefined;
+        return this?.homeRemedyText || undefined;
       },
     },
     homeRemedyText: {
       type: String,
       trim: true,
       default: function (this: any) {
-        return this.remedyText || undefined;
+        return this?.remedyText || undefined;
       },
     },
     dosageInstructions: {
