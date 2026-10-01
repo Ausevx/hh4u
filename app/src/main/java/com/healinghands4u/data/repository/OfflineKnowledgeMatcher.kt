@@ -60,12 +60,43 @@ object OfflineKnowledgeMatcher {
             .map { it.first }.take(10)
     }
 
-    /** Only a matching rule may produce a branch-specific answer. */
+    /** Additive resolution: root answer + each diagnostic question answered "yes". */
     fun resolve(entry: KnowledgeBaseEntity, answers: Map<String, String>): AnswerDto? {
         val data = entry.consultationData()
         if (data.questions.isEmpty() || data.questions.any { answers[it.id] !in listOf("yes", "no") }) return null
-        return data.branches.firstOrNull { branch ->
-            branch.conditions.isNotEmpty() && branch.conditions.all { (id, value) -> answers[id] == value.lowercase(Locale.ROOT) }
-        }?.answer
+
+        val root = entry.directAnswer()
+        val reasonParts = mutableListOf<String>()
+        val remedyParts = mutableListOf<String>()
+        val videoUrls = mutableListOf<String>()
+
+        root.reasonText?.takeIf { it.isNotBlank() }?.let { reasonParts.add(it) }
+        (root.homeRemedyText ?: root.remedyName)?.takeIf { it.isNotBlank() }?.let { remedyParts.add(it) }
+        root.videoUrl?.takeIf { it.isNotBlank() }?.let { videoUrls.add(it) }
+
+        for (branch in data.branches) {
+            val matchesYes = branch.conditions.entries.any { (id, value) ->
+                value.equals("yes", ignoreCase = true) && answers[id] == "yes"
+            }
+            if (matchesYes && branch.answer != null) {
+                branch.answer.reasonText?.takeIf { it.isNotBlank() }?.let { reasonParts.add(it) }
+                (branch.answer.homeRemedyText ?: branch.answer.remedyName)?.takeIf { it.isNotBlank() }?.let { remedyParts.add(it) }
+                branch.answer.videoUrl?.takeIf { it.isNotBlank() && it !in videoUrls }?.let { videoUrls.add(it) }
+            }
+        }
+
+        val combinedReason = reasonParts.joinToString("\n\n")
+        val combinedRemedy = remedyParts.joinToString("\n\n")
+
+        return AnswerDto(
+            id = root.id,
+            answerText = listOf(combinedReason, combinedRemedy).filter { it.isNotBlank() }.joinToString("\n\n"),
+            reasonText = combinedReason.ifBlank { null },
+            remedyName = combinedRemedy.ifBlank { null },
+            homeRemedyText = combinedRemedy.ifBlank { null },
+            dosageInstructions = root.dosageInstructions,
+            safetyDisclaimerText = root.safetyDisclaimerText,
+            videoUrl = videoUrls.firstOrNull()
+        )
     }
 }

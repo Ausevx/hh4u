@@ -601,11 +601,9 @@ export class AdminKnowledgeBaseService {
       return await this.executeWithTransaction(async (session) => {
         const opts = session ? { session } : {};
 
-        const [delAnswers, delConsults, delQuestion] = await Promise.all([
-          Answer.deleteMany({ level1QuestionId: question._id }, opts),
-          ConsultationQuery.deleteMany({ level1QuestionId: question._id }, opts),
-          Level1Question.deleteOne({ _id: question._id }, opts),
-        ]);
+        const delAnswers = await Answer.deleteMany({ level1QuestionId: question._id }, opts);
+        const delConsults = await ConsultationQuery.deleteMany({ level1QuestionId: question._id }, opts);
+        const delQuestion = await Level1Question.deleteOne({ _id: question._id }, opts);
 
         const questionsDeleted = delQuestion.deletedCount || 0;
         if (questionsDeleted === 0) {
@@ -711,16 +709,13 @@ export class AdminKnowledgeBaseService {
       const questionMap = new Map<string, mongoose.Types.ObjectId>();
 
       // A. Upsert Level 1 Questions
-      for (let i = 0; i < parsed.level1Questions.length; i++) {
-        const item = parsed.level1Questions[i];
-        const embedding = embeddings[i];
-
-        const qDoc = await Level1Question.findOneAndUpdate(
-          { canonicalQuestionText: item.canonicalQuestionText },
-          {
+      const l1Ops = parsed.level1Questions.map((item, i) => ({
+        updateOne: {
+          filter: { canonicalQuestionText: item.canonicalQuestionText },
+          update: {
             $set: {
               canonicalQuestionText: item.canonicalQuestionText,
-              embedding,
+              embedding: embeddings[i],
               isActive: true,
             },
             $setOnInsert: {
@@ -728,45 +723,57 @@ export class AdminKnowledgeBaseService {
               version: 1,
             },
           },
-          { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true, ...opts }
-        );
+          upsert: true,
+        },
+      }));
 
-        if (qDoc) {
-          questionMap.set(item.canonicalQuestionText, qDoc._id as mongoose.Types.ObjectId);
-        }
+      if (l1Ops.length > 0) {
+        await Level1Question.bulkWrite(l1Ops, opts);
+      }
+
+      // Fetch all to get IDs for mapping
+      const allQs = await Level1Question.find({}, { _id: 1, canonicalQuestionText: 1 }, opts);
+      for (const q of allQs) {
+        questionMap.set(q.canonicalQuestionText, q._id as mongoose.Types.ObjectId);
       }
 
       const questionIdList = Array.from(questionMap.values());
 
       // B. Upsert Consultation Queries
-      for (let i = 0; i < parsed.consultationQueries.length; i++) {
-        const cq = parsed.consultationQueries[i];
-        const qDocId = questionMap.get(cq.questionText) || questionIdList[i];
-        if (!qDocId) continue;
+      const cqOps = parsed.consultationQueries
+        .map((cq, i) => {
+          const qDocId = questionMap.get(cq.questionText) || questionIdList[i];
+          if (!qDocId) return null;
 
-        const diagnosticQuestions = cq.diagnosticQuestions.map((dqText, idx) => ({
-          id: `diag_${idx + 1}`,
-          questionText: dqText,
-        }));
+          const diagnosticQuestions = cq.diagnosticQuestions.map((dqText, idx) => ({
+            id: `diag_${idx + 1}`,
+            questionText: dqText,
+          }));
 
-        await ConsultationQuery.findOneAndUpdate(
-          { level1QuestionId: qDocId },
-          {
-            $set: {
-              level1QuestionId: qDocId,
-              diagnosticQuestions,
+          return {
+            updateOne: {
+              filter: { level1QuestionId: qDocId },
+              update: {
+                $set: {
+                  level1QuestionId: qDocId,
+                  diagnosticQuestions,
+                },
+                $setOnInsert: {
+                  answerBranches: [],
+                },
+              },
+              upsert: true,
             },
-            $setOnInsert: {
-              answerBranches: [],
-            },
-          },
-          { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true, ...opts }
-        );
+          };
+        })
+        .filter(Boolean) as any[];
+
+      if (cqOps.length > 0) {
+        await ConsultationQuery.bulkWrite(cqOps, opts);
       }
 
       // C. Upsert Answers (Level 1 + Diagnostic)
-      for (let i = 0; i < parsed.answers.length; i++) {
-        const ans = parsed.answers[i];
+      const ansOps = parsed.answers.map((ans, i) => {
         const isLevel1 = ans.answerType === 'level1' || i < parsed.level1Questions.length;
         const answerText = (ans.reasonText && ans.remedyText)
           ? `${ans.reasonText}\n\n${ans.remedyText}`
@@ -774,39 +781,80 @@ export class AdminKnowledgeBaseService {
 
         if (isLevel1) {
           const qDocId = questionMap.get(ans.questionText) || questionIdList[i];
-          await Answer.findOneAndUpdate(
-            { questionText: ans.questionText, answerType: 'level1' },
-            {
-              $set: {
-                level1QuestionId: qDocId,
-                questionText: ans.questionText,
-                answerType: 'level1',
-                reasonText: ans.reasonText,
-                remedyText: ans.remedyText,
-                homeRemedyText: ans.remedyText,
-                answerText,
-                videoUrl: ans.videoUrl,
+          return {
+            updateOne: {
+              filter: { questionText: ans.questionText, answerType: 'level1' },
+              update: {
+                $set: {
+                  level1QuestionId: qDocId,
+                  questionText: ans.questionText,
+                  answerType: 'level1',
+                  reasonText: ans.reasonText,
+                  remedyText: ans.remedyText,
+                  homeRemedyText: ans.remedyText,
+                  answerText,
+                  videoUrl: ans.videoUrl,
+                },
               },
+              upsert: true,
             },
-            { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true, ...opts }
-          );
+          };
         } else {
-          await Answer.findOneAndUpdate(
-            { questionText: ans.questionText, answerType: 'diagnostic' },
-            {
-              $set: {
-                questionText: ans.questionText,
-                answerType: 'diagnostic',
-                reasonText: ans.reasonText,
-                remedyText: ans.remedyText,
-                homeRemedyText: ans.remedyText,
-                answerText,
-                videoUrl: ans.videoUrl,
+          return {
+            updateOne: {
+              filter: { questionText: ans.questionText, answerType: 'diagnostic' },
+              update: {
+                $set: {
+                  questionText: ans.questionText,
+                  answerType: 'diagnostic',
+                  reasonText: ans.reasonText,
+                  remedyText: ans.remedyText,
+                  homeRemedyText: ans.remedyText,
+                  answerText,
+                  videoUrl: ans.videoUrl,
+                },
               },
+              upsert: true,
             },
-            { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true, ...opts }
-          );
+          };
         }
+      });
+
+      if (ansOps.length > 0) {
+        await Answer.bulkWrite(ansOps as any[], opts);
+      }
+
+      // D. Link diagnostic answers to ConsultationQuery answerBranches
+      const allConsults = await ConsultationQuery.find({}, null, opts);
+      const allDiagAnswers = await Answer.find({ answerType: 'diagnostic' }, null, opts);
+      
+      const branchOps = allConsults.map(consultDoc => {
+        if (!consultDoc.diagnosticQuestions || consultDoc.diagnosticQuestions.length === 0) return null;
+        
+        const branches: Array<{ conditions: Record<string, string>; resolvedAnswerId: mongoose.Types.ObjectId }> = [];
+        for (const dq of consultDoc.diagnosticQuestions) {
+          const diagAnswer = allDiagAnswers.find(a => a.questionText === dq.questionText);
+          if (diagAnswer) {
+            branches.push({
+              conditions: { [dq.id]: 'yes' },
+              resolvedAnswerId: diagAnswer._id as mongoose.Types.ObjectId,
+            });
+          }
+        }
+        
+        if (branches.length > 0) {
+          return {
+            updateOne: {
+              filter: { _id: consultDoc._id },
+              update: { $set: { answerBranches: branches } }
+            }
+          };
+        }
+        return null;
+      }).filter(Boolean) as any[];
+
+      if (branchOps.length > 0) {
+        await ConsultationQuery.bulkWrite(branchOps, opts);
       }
 
       return {

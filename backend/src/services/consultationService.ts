@@ -129,79 +129,72 @@ export class ConsultationService {
       throw error;
     }
 
-    // 5. Evaluate Answer Branches
-    let matchedBranch: IAnswerBranch | null = null;
+    // 5. Additive Answer Resolution: root answer + each "yes" diagnostic answer
+    // Always fetch the root Level 1 answer
+    const rootAnswer = await timed('root_answer_lookup', () =>
+      Answer.findOne({ level1QuestionId: session.matchedLevel1QuestionId, answerType: 'level1' })
+        .then(a => a || Answer.findOne({ level1QuestionId: session.matchedLevel1QuestionId }))
+    );
 
+    if (!rootAnswer) {
+      const error: any = new Error('No root answer found for this question. Please consult the clinic.');
+      error.statusCode = 422;
+      throw error;
+    }
+
+    // Collect diagnostic answers for questions answered "yes"
+    const diagnosticAnswers: IAnswer[] = [];
     if (consultDoc?.answerBranches && consultDoc.answerBranches.length > 0) {
       for (const branch of consultDoc.answerBranches) {
         const conditions = branch.conditions;
-        let branchKeys: string[] = [];
+        let branchKey = '';
+        let branchVal = '';
 
         if (conditions instanceof Map || typeof (conditions as any).get === 'function') {
-          branchKeys = Array.from((conditions as any).keys());
+          const keys = Array.from((conditions as any).keys()) as string[];
+          if (keys.length === 1) { branchKey = keys[0]; branchVal = ((conditions as any).get(branchKey) || '').toString().toLowerCase().trim(); }
         } else if (conditions && typeof conditions === 'object') {
-          branchKeys = Object.keys(conditions);
+          const keys = Object.keys(conditions);
+          if (keys.length === 1) { branchKey = keys[0]; branchVal = ((conditions as any)[branchKey] || '').toString().toLowerCase().trim(); }
         }
 
-        if (branchKeys.length === 0) continue;
-
-        const allMatch = branchKeys.every((key) => {
-          let expectedVal = '';
-          if (conditions instanceof Map || typeof (conditions as any).get === 'function') {
-            expectedVal = ((conditions as any).get(key) || '').toString().toLowerCase().trim();
-          } else {
-            expectedVal = ((conditions as any)[key] || '').toString().toLowerCase().trim();
-          }
-          const userVal = normalizedAnswers[key];
-          return expectedVal === userVal;
-        });
-
-        if (allMatch) {
-          matchedBranch = branch;
-          break;
+        // If user answered "yes" to this diagnostic question, fetch its answer
+        if (branchKey && branchVal === 'yes' && normalizedAnswers[branchKey] === 'yes' && branch.resolvedAnswerId) {
+          const diagAns = await Answer.findById(branch.resolvedAnswerId);
+          if (diagAns) diagnosticAnswers.push(diagAns);
         }
       }
-
-
     }
 
-    if (!matchedBranch?.resolvedAnswerId) {
-      const error: any = new Error('No consultation answer matches these responses. Please consult the clinic.');
-      error.statusCode = 422;
-      throw error;
+    // 6. Combine root + diagnostic answers additively
+    const reasonParts = [rootAnswer.reasonText].filter(Boolean);
+    const remedyParts = [(rootAnswer as any).remedyText || rootAnswer.homeRemedyText].filter(Boolean);
+    const videoUrls: string[] = [rootAnswer.videoUrl].filter(Boolean) as string[];
+
+    for (const da of diagnosticAnswers) {
+      if (da.reasonText) reasonParts.push(da.reasonText);
+      if ((da as any).remedyText || da.homeRemedyText) remedyParts.push((da as any).remedyText || da.homeRemedyText || '');
+      if (da.videoUrl && !videoUrls.includes(da.videoUrl)) videoUrls.push(da.videoUrl);
     }
 
-    // 6. Fetch Resolved Answer Document
-    let answerDoc: IAnswer | null = null;
+    const combinedReasonText = reasonParts.join('\n\n');
+    const combinedRemedyText = remedyParts.join('\n\n');
+    const combinedAnswerText = [combinedReasonText, combinedRemedyText].filter(Boolean).join('\n\n');
 
-    if (matchedBranch?.resolvedAnswerId) {
-      answerDoc = await timed('branch_answer_lookup', () => Answer.findById(matchedBranch!.resolvedAnswerId));
-    }
-
-    if (!answerDoc) {
-      const error: any = new Error('The matched consultation answer is unavailable. Please consult the clinic.');
-      error.statusCode = 422;
-      throw error;
-    }
-
-    const templateText = answerDoc.answerText;
-
-    // 8. Update ChatbotSession
+    // 7. Update ChatbotSession
     session.consultationAnswers = normalizedAnswers;
-    if (answerDoc?._id) {
-      session.finalAnswerId = answerDoc._id;
+    if (rootAnswer?._id) {
+      session.finalAnswerId = rootAnswer._id;
     }
     const language = session.originalLanguage || 'en';
-    // Use the saved language rather than detecting again at the answer stage.
-    // One content-keyed translation batch is reusable across users of this branch.
     const [, localizedAnswer] = await Promise.all([
       session.save(),
       localizeFields(getAIServices().llm, {
-        id: answerDoc._id.toString(), answerText: templateText,
-        reasonText: answerDoc.reasonText,
-        remedyName: answerDoc.remedyText, dosageInstructions: answerDoc.dosageInstructions,
-        homeRemedyText: answerDoc.homeRemedyText, safetyDisclaimerText: answerDoc.safetyDisclaimerText,
-        videoUrl: answerDoc.videoUrl,
+        id: rootAnswer._id.toString(), answerText: combinedAnswerText,
+        reasonText: combinedReasonText,
+        remedyName: combinedRemedyText, dosageInstructions: rootAnswer.dosageInstructions,
+        homeRemedyText: combinedRemedyText, safetyDisclaimerText: rootAnswer.safetyDisclaimerText,
+        videoUrl: videoUrls[0],
       }, language, ANSWER_FIELDS),
     ]);
 
@@ -212,28 +205,15 @@ export class ConsultationService {
       additionalContext: { consultationAnswers: normalizedAnswers },
     });
 
-    // Format conditions for response
-    let formattedConditions: Record<string, string> = {};
-    if (matchedBranch?.conditions) {
-      if (matchedBranch.conditions instanceof Map || typeof (matchedBranch.conditions as any).get === 'function') {
-        formattedConditions = Object.fromEntries(matchedBranch.conditions as any);
-      } else {
-        formattedConditions = matchedBranch.conditions as Record<string, string>;
-      }
-    }
-
     return {
       ...requestMetadata(),
       success: true,
       sessionId: session._id.toString(),
-      matchedBranch: matchedBranch
-        ? {
-            conditions: formattedConditions,
-            resolvedAnswerId: matchedBranch.resolvedAnswerId?.toString(),
-          }
-        : undefined,
       answer: {
         ...localizedAnswer,
+        reasonText: localizedAnswer.reasonText || combinedReasonText,
+        homeRemedyText: localizedAnswer.homeRemedyText || combinedRemedyText,
+        videoUrl: videoUrls[0],
         personalizedAnswer: personalizedAnswerText,
       },
       personalized: true,

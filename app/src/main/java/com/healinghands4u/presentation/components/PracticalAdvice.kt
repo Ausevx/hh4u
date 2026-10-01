@@ -89,14 +89,6 @@ fun PracticalAdvice(
 
         // Section 1: Pathology & Clinical Reason
         if (!pathologyText.isNullOrBlank()) {
-            Text(
-                text = "Pathology & Clinical Reason:",
-                style = MaterialTheme.typography.titleSmall.copy(
-                    fontWeight = FontWeight.Bold,
-                    fontStyle = FontStyle.Italic
-                ),
-                color = tokens.accent
-            )
             SelectionContainer {
                 Text(
                     text = pathologyText,
@@ -119,14 +111,6 @@ fun PracticalAdvice(
 
         // Section 2: Home Remedy & Prescription
         if (!remedyDisplayText.isNullOrBlank()) {
-            Text(
-                text = "Home Remedy & Prescription:",
-                style = MaterialTheme.typography.titleSmall.copy(
-                    fontWeight = FontWeight.Bold,
-                    fontStyle = FontStyle.Italic
-                ),
-                color = tokens.accent
-            )
             SelectionContainer {
                 Text(
                     text = remedyDisplayText,

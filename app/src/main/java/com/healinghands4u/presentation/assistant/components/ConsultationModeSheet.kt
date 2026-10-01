@@ -30,7 +30,7 @@ fun ConsultationModeSheet(
     onDismissRequest: () -> Unit,
     onProceed: (Boolean) -> Unit
 ) {
-    var isGuidedSelected by remember { mutableStateOf(true) }
+    var isGuidedSelected by remember { mutableStateOf(false) }
     val tokens = MaterialTheme.trustedTealColors
 
     ModalBottomSheet(
@@ -80,103 +80,6 @@ fun ConsultationModeSheet(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Guided Option
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(if (isGuidedSelected) tokens.surfaceTint.copy(alpha = 0.4f) else tokens.surfaceTint.copy(alpha = 0.1f))
-                    .clickable { isGuidedSelected = true }
-                    .padding(16.dp)
-            ) {
-                Column {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.Top
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Box(
-                                modifier = Modifier
-                                    .size(48.dp)
-                                    .clip(CircleShape)
-                                    .background(tokens.surfaceTint)
-                                    .padding(12.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Explore,
-                                    contentDescription = null,
-                                    tint = tokens.accent
-                                )
-                            }
-
-                            Spacer(modifier = Modifier.width(12.dp))
-
-                            Column {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Surface(
-                                        shape = CircleShape,
-                                        color = tokens.accent,
-                                        contentColor = tokens.accentInk
-                                    ) {
-                                        Row(
-                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Default.AutoAwesome,
-                                                contentDescription = null,
-                                                modifier = Modifier.size(12.dp)
-                                            )
-                                            Spacer(modifier = Modifier.width(4.dp))
-                                            Text("Recommended", style = MaterialTheme.typography.labelSmall)
-                                        }
-                                    }
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text("~2 mins", style = MaterialTheme.typography.labelSmall, color = tokens.inkDim)
-                                }
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    text = "Start guided consultation",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    color = tokens.accent
-                                )
-                            }
-                        }
-
-                        // Radio
-                        Box(
-                            modifier = Modifier
-                                .size(24.dp)
-                                .clip(CircleShape)
-                                .background(if (isGuidedSelected) tokens.accent else Color.Transparent)
-                                .border(1.dp, if (isGuidedSelected) Color.Transparent else tokens.line, CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            if (isGuidedSelected) {
-                                Icon(
-                                    imageVector = Icons.Default.Check,
-                                    contentDescription = null,
-                                    tint = tokens.accentInk,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                            }
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Text(
-                        text = "Answer 3 short questions to balance your doshas for targeted relief.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = tokens.ink,
-                        modifier = Modifier.padding(start = 60.dp)
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
             // Direct Answer Option
             Box(
                 modifier = Modifier
@@ -214,20 +117,20 @@ fun ConsultationModeSheet(
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Surface(
                                         shape = CircleShape,
-                                        color = com.healinghands4u.presentation.theme.ClinicalTertiaryContainer,
-                                        contentColor = com.healinghands4u.presentation.theme.ClinicalOnTertiaryContainer
+                                        color = tokens.accent,
+                                        contentColor = tokens.accentInk
                                     ) {
                                         Row(
                                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
                                             Icon(
-                                                imageVector = Icons.Default.Bolt,
+                                                imageVector = Icons.Default.AutoAwesome,
                                                 contentDescription = null,
                                                 modifier = Modifier.size(12.dp)
                                             )
                                             Spacer(modifier = Modifier.width(4.dp))
-                                            Text("Quick", style = MaterialTheme.typography.labelSmall)
+                                            Text("Recommended", style = MaterialTheme.typography.labelSmall)
                                         }
                                     }
                                     Spacer(modifier = Modifier.width(8.dp))
@@ -237,7 +140,7 @@ fun ConsultationModeSheet(
                                 Text(
                                     text = "Get a direct answer",
                                     style = MaterialTheme.typography.titleMedium,
-                                    color = tokens.ink
+                                    color = if (!isGuidedSelected) tokens.accent else tokens.ink
                                 )
                             }
                         }
@@ -265,6 +168,103 @@ fun ConsultationModeSheet(
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(
                         text = "View quick, curated wellness guidance without personalizing questions.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = tokens.ink,
+                        modifier = Modifier.padding(start = 60.dp)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Guided Option
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(if (isGuidedSelected) tokens.surfaceTint.copy(alpha = 0.4f) else tokens.surfaceTint.copy(alpha = 0.1f))
+                    .clickable { isGuidedSelected = true }
+                    .padding(16.dp)
+            ) {
+                Column {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.Top
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .clip(CircleShape)
+                                    .background(tokens.surfaceTint)
+                                    .padding(12.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Explore,
+                                    contentDescription = null,
+                                    tint = tokens.accent
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.width(12.dp))
+
+                            Column {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Surface(
+                                        shape = CircleShape,
+                                        color = com.healinghands4u.presentation.theme.ClinicalTertiaryContainer,
+                                        contentColor = com.healinghands4u.presentation.theme.ClinicalOnTertiaryContainer
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Explore,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(12.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text("Detailed", style = MaterialTheme.typography.labelSmall)
+                                        }
+                                    }
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("~2 mins", style = MaterialTheme.typography.labelSmall, color = tokens.inkDim)
+                                }
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "Start guided consultation",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = if (isGuidedSelected) tokens.accent else tokens.ink
+                                )
+                            }
+                        }
+
+                        // Radio
+                        Box(
+                            modifier = Modifier
+                                .size(24.dp)
+                                .clip(CircleShape)
+                                .background(if (isGuidedSelected) tokens.accent else Color.Transparent)
+                                .border(1.dp, if (isGuidedSelected) Color.Transparent else tokens.line, CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (isGuidedSelected) {
+                                Icon(
+                                    imageVector = Icons.Default.Check,
+                                    contentDescription = null,
+                                    tint = tokens.accentInk,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        text = "Answer 3 short questions to balance your doshas for targeted relief.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = tokens.inkDim,
                         modifier = Modifier.padding(start = 60.dp)

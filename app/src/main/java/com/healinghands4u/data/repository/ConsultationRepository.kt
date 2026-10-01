@@ -92,14 +92,11 @@ class ConsultationRepository @Inject constructor(
     }
 
     private fun resolveOffline(entry: KnowledgeBaseEntity, questions: List<DiagnosticQuestionDto>, answers: Map<String, String>): ConsultationResult {
-        if (entry.consultationData().questions != questions)
-            throw IllegalStateException("The saved questions differ from this consultation. Reconnect and retry; your answers are kept.")
-        if (entry.consultationData().branches.isEmpty() && !entry.answerText.isNullOrBlank()) {
-            return ConsultationResult(entry.directAnswer(), true,
-                "Offline: saved general guidance for this topic. This answer is not tailored to your yes/no responses.")
-        }
         val answer = OfflineKnowledgeMatcher.resolve(entry, answers)
-            ?: throw IllegalStateException("No saved answer matches your responses. Please reconnect or consult the clinic.")
-        return ConsultationResult(answer, true)
+            ?: entry.directAnswer().takeIf { !entry.answerText.isNullOrBlank() }
+            ?: throw IllegalStateException("No saved answer found. Please reconnect or consult the clinic.")
+        val hasBranches = entry.consultationData().branches.isNotEmpty()
+        val notice = if (!hasBranches) "Offline: saved general guidance for this topic. This answer is not tailored to your yes/no responses." else null
+        return ConsultationResult(answer, true, notice)
     }
 }

@@ -7,7 +7,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
+
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.VerifiedUser
@@ -100,24 +100,7 @@ fun ChatComposer(
                     .padding(6.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Add button
-                Box(
-                    modifier = Modifier
-                        .size(40.dp)
-                        .clip(CircleShape)
-                        .background(tokens.surfaceTint.copy(alpha = 0.4f))
-                        .clickable { },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = "Add attachment",
-                        tint = tokens.accent,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
 
-                Spacer(modifier = Modifier.width(8.dp))
 
                 // Input Field
                 BasicTextField(

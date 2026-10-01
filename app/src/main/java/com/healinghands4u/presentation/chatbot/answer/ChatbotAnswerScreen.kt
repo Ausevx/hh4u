@@ -41,6 +41,7 @@ import com.healinghands4u.presentation.theme.trustedTealColors
 
 import androidx.compose.material3.Text
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.animation.Crossfade
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -129,36 +130,50 @@ fun ChatbotAnswerScreen(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(paddingValues)
-                        .padding(16.dp),
+                        .padding(24.dp),
                     verticalArrangement = Arrangement.Top,
                     horizontalAlignment = Alignment.Start
                 ) {
-                    Text("Finding saved advice…", color = tokens.inkDim, style = MaterialTheme.typography.bodySmall)
-                    Spacer(modifier = Modifier.height(16.dp))
-                    
-                    // Skeleton Chat Bubble
-                    androidx.compose.foundation.layout.Box(
-                        modifier = Modifier
-                            .fillMaxWidth(0.85f)
-                            .height(120.dp)
-                            .background(
-                                color = tokens.surfaceTint,
-                                shape = RoundedCornerShape(16.dp, 16.dp, 16.dp, 0.dp)
-                            )
+                    var loadingPhase by remember { mutableStateOf(0) }
+                    val phases = listOf(
+                        "Analyzing your query...",
+                        "Searching wellness database...",
+                        "Consulting Dr. Anjali's notes...",
+                        "Curating your healing plan..."
                     )
-                    Spacer(modifier = Modifier.height(16.dp))
+                    LaunchedEffect(Unit) {
+                        while (true) {
+                            kotlinx.coroutines.delay(2000)
+                            loadingPhase = (loadingPhase + 1) % phases.size
+                        }
+                    }
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        modifier = Modifier
+                            .background(
+                                color = tokens.surfaceTint.copy(alpha = 0.3f),
+                                shape = RoundedCornerShape(16.dp)
+                            )
+                            .padding(horizontal = 20.dp, vertical = 16.dp)
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            color = tokens.accent,
+                            strokeWidth = 2.5.dp
+                        )
+                        Crossfade(targetState = loadingPhase, label = "loading_text") { phase ->
+                            Text(
+                                text = phases[phase],
+                                color = tokens.ink,
+                                style = MaterialTheme.typography.bodyLarge
+                            )
+                        }
+                    }
                     
+                    Spacer(modifier = Modifier.height(24.dp))
                     com.healinghands4u.presentation.components.SearchWaitStatus(viewModel::cancelSearch)
-                    // Skeleton Remedy Card
-                    androidx.compose.foundation.layout.Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(160.dp)
-                            .background(
-                                color = tokens.surfaceTint,
-                                shape = RoundedCornerShape(12.dp)
-                            )
-                    )
                 }
             }
             is ChatbotUiState.Error -> {
