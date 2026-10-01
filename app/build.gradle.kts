@@ -14,8 +14,8 @@ android {
         applicationId = "com.healinghands4u"
         minSdk = 24
         targetSdk = 34
-        versionCode = 5
-        versionName = "2.0"
+        versionCode = 6
+        versionName = "3.0"
         val googleClientId = providers.gradleProperty("GOOGLE_WEB_CLIENT_ID")
             .orElse(providers.environmentVariable("GOOGLE_WEB_CLIENT_ID")).getOrElse("")
         resValue("string", "google_web_client_id", googleClientId)
