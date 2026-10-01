@@ -181,7 +181,8 @@ export class AdminKnowledgeBaseService {
         err?.message?.includes('Transaction numbers are only allowed on a replica set member') ||
         err?.message?.includes('replica set') ||
         err?.message?.includes('retryable writes') ||
-        err?.message?.includes('does not support')
+        err?.message?.includes('does not support') ||
+        err?.message?.includes('sharded cluster')
       ) {
         return operation(null);
       }
