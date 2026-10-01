@@ -303,7 +303,7 @@ export const DashboardPage: React.FC = () => {
                 <h2 className="text-sm font-bold text-gray-900 dark:text-white">Android App</h2>
               </div>
               <span className="px-2 py-0.5 bg-black dark:bg-white text-white dark:text-black text-[10px] font-bold rounded-full">
-                v2.0 · build 5
+                v3.0 · build 6
               </span>
             </div>
             <p className="text-xs text-gray-500 dark:text-gray-400 mb-3 leading-relaxed">
@@ -315,7 +315,7 @@ export const DashboardPage: React.FC = () => {
               className="inline-flex items-center px-3 py-1.5 border border-gray-300 dark:border-gray-700 rounded-lg text-xs font-semibold text-black dark:text-white bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
             >
               <Download className="w-3.5 h-3.5 mr-1.5" />
-              Download APK v2.0 (build 5)
+              Download APK v3.0 (build 6)
             </a>
           </div>
 
