@@ -174,8 +174,10 @@ export const DashboardPage: React.FC = () => {
       setItemToDelete(null);
       fetchStats();
       fetchItems();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Delete failed:', err);
+      alert(err.message || 'Failed to delete knowledge base entry');
+      setIsDeleteModalOpen(false);
     } finally {
       setIsDeleting(false);
     }
