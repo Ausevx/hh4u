@@ -598,27 +598,23 @@ export class AdminKnowledgeBaseService {
         return null;
       }
 
-      return await this.executeWithTransaction(async (session) => {
-        const opts = session ? { session } : {};
+      const delAnswers = await Answer.deleteMany({ level1QuestionId: question._id });
+      const delConsults = await ConsultationQuery.deleteMany({ level1QuestionId: question._id });
+      const delQuestion = await Level1Question.deleteOne({ _id: question._id });
 
-        const delAnswers = await Answer.deleteMany({ level1QuestionId: question._id }, opts);
-        const delConsults = await ConsultationQuery.deleteMany({ level1QuestionId: question._id }, opts);
-        const delQuestion = await Level1Question.deleteOne({ _id: question._id }, opts);
+      const questionsDeleted = delQuestion.deletedCount || 0;
+      if (questionsDeleted === 0) {
+        return null;
+      }
 
-        const questionsDeleted = delQuestion.deletedCount || 0;
-        if (questionsDeleted === 0) {
-          return null;
-        }
-
-        return {
-          success: true,
-          deletedCount: {
-            questions: questionsDeleted,
-            consultations: delConsults.deletedCount || 0,
-            answers: delAnswers.deletedCount || 0,
-          },
-        };
-      });
+      return {
+        success: true,
+        deletedCount: {
+          questions: questionsDeleted,
+          consultations: delConsults.deletedCount || 0,
+          answers: delAnswers.deletedCount || 0,
+        },
+      };
     } catch (err: any) {
       if (
         err?.name === 'CastError' ||
