@@ -30,9 +30,6 @@ const AnswerSchema: Schema = new Schema(
       required: true,
       trim: true,
       index: true,
-      default: function (this: any) {
-        return this?.answerText || 'General Consultation Question';
-      },
     },
     answerType: {
       type: String,
@@ -45,12 +42,6 @@ const AnswerSchema: Schema = new Schema(
       type: String,
       required: true,
       trim: true,
-      default: function (this: any) {
-        if (this?.remedyText && this?.reasonText) {
-          return `${this.reasonText}\n\n${this.remedyText}`;
-        }
-        return this?.remedyText || this?.reasonText || 'Homeopathic guidance.';
-      },
     },
     reasonText: {
       type: String,
@@ -59,16 +50,10 @@ const AnswerSchema: Schema = new Schema(
     remedyText: {
       type: String,
       trim: true,
-      default: function (this: any) {
-        return this?.homeRemedyText || undefined;
-      },
     },
     homeRemedyText: {
       type: String,
       trim: true,
-      default: function (this: any) {
-        return this?.remedyText || undefined;
-      },
     },
     dosageInstructions: {
       type: String,
@@ -90,8 +75,12 @@ const AnswerSchema: Schema = new Schema(
 
 // Pre-validation hook to ensure cross-field normalization and backwards compatibility
 AnswerSchema.pre('validate', function () {
+  if (!this) return;
   if (!this.questionText && this.answerText) {
     this.questionText = this.answerText;
+  }
+  if (!this.questionText) {
+    this.questionText = 'General Consultation Question';
   }
   if (!this.answerText) {
     if (this.remedyText && this.reasonText) {
@@ -100,6 +89,8 @@ AnswerSchema.pre('validate', function () {
       this.answerText = this.remedyText;
     } else if (this.reasonText) {
       this.answerText = this.reasonText;
+    } else {
+      this.answerText = 'Homeopathic guidance.';
     }
   }
   if (!this.homeRemedyText && this.remedyText) {
