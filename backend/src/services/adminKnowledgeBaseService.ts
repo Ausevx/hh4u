@@ -675,22 +675,9 @@ export class AdminKnowledgeBaseService {
     // 1. Parse and validate Excel buffer (throws ExcelValidationError 400 before touching DB)
     const parsed: ParsedExcelData = await parseExcelBuffer(buffer);
 
-    // 2. Generate 1536-dimensional embeddings for Level 1 questions in rate-limited batches of 10
-    const ai = getAIServices();
+    // 2. Schedule embedding generation for the background to avoid HTTP timeout
     const questionTexts = parsed.level1Questions.map((q) => q.canonicalQuestionText);
-    const embeddings: number[][] = [];
-    const BATCH_SIZE = 10;
 
-    for (let i = 0; i < questionTexts.length; i += BATCH_SIZE) {
-      const batch = questionTexts.slice(i, i + BATCH_SIZE);
-      const batchEmbeddings = await Promise.all(
-        batch.map((text) => ai.embedding.generateEmbedding(text))
-      );
-      embeddings.push(...batchEmbeddings);
-      if (i + BATCH_SIZE < questionTexts.length) {
-        await new Promise((resolve) => setTimeout(resolve, 300));
-      }
-    }
 
     // 3. Ingest into MongoDB with transaction if replica set is available
     return this.executeWithTransaction(async (session) => {
@@ -712,7 +699,6 @@ export class AdminKnowledgeBaseService {
           update: {
             $set: {
               canonicalQuestionText: item.canonicalQuestionText,
-              embedding: embeddings[i],
               isActive: true,
             },
             $setOnInsert: {
@@ -863,7 +849,51 @@ export class AdminKnowledgeBaseService {
           answers: parsed.answers.length,
         },
       };
+    }).then((result) => {
+      // Fire and forget background task to generate embeddings
+      this.generateEmbeddingsInBackground(questionTexts).catch(e => console.error("Background embedding error:", e));
+      return result;
     });
+  }
+
+  /**
+   * Generates embeddings in the background to avoid blocking HTTP requests.
+   */
+  private async generateEmbeddingsInBackground(questionTexts: string[]) {
+    console.log(`Starting background embedding generation for ${questionTexts.length} questions...`);
+    const ai = getAIServices();
+    const BATCH_SIZE = 10;
+    let successCount = 0;
+
+    for (let i = 0; i < questionTexts.length; i += BATCH_SIZE) {
+      const batch = questionTexts.slice(i, i + BATCH_SIZE);
+      try {
+        const batchEmbeddings = await Promise.all(
+          batch.map((text) => ai.embedding.generateEmbedding(text))
+        );
+        
+        // Update database with new embeddings
+        const updateOps = batch.map((text, idx) => ({
+          updateOne: {
+            filter: { canonicalQuestionText: text },
+            update: { $set: { embedding: batchEmbeddings[idx] } }
+          }
+        }));
+        
+        await Level1Question.bulkWrite(updateOps);
+        successCount += batch.length;
+        console.log(`Background Embedding: Processed ${successCount}/${questionTexts.length}`);
+
+      } catch (err) {
+        console.error(`Background Embedding: Failed batch starting at index ${i}`, err);
+      }
+
+      if (i + BATCH_SIZE < questionTexts.length) {
+        // Wait 1.5 seconds between batches to respect rate limits
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+      }
+    }
+    console.log("Background embedding generation completed!");
   }
 
   // ==========================================================================
