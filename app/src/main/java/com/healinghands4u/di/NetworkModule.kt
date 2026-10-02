@@ -59,7 +59,7 @@ object NetworkModule {
     @Singleton
     fun provideRetrofit(okHttpClient: OkHttpClient): Retrofit {
         return Retrofit.Builder()
-            .baseUrl("https://hh4u-production.up.railway.app/") // Live Railway backend
+            .baseUrl("https://hh4u-production-64ef.up.railway.app/") // Live Railway backend
             .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
