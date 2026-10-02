@@ -82,7 +82,8 @@ export const DashboardPage: React.FC = () => {
   const [backendVersion, setBackendVersion] = useState<{ version: string; buildDate: string; revision: string; changelog: string[] } | null>(null);
 
   useEffect(() => {
-    fetch('/health')
+    const backendUrl = (import.meta.env.VITE_API_URL || '').replace(/\/api\/admin\/?$/, '');
+    fetch(`${backendUrl}/health`)
       .then(r => r.json())
       .then(d => setBackendVersion({ version: d.version || '?', buildDate: d.buildDate || '?', revision: d.revision || '?', changelog: d.changelog || [] }))
       .catch(() => {});
