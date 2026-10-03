@@ -13,6 +13,11 @@ import {
   Clock,
   MessageCircle,
   Filter,
+  Phone,
+  MapPin,
+  Globe,
+  CheckCircle2,
+  AlertCircle
 } from 'lucide-react';
 
 export const UsersPage: React.FC = () => {
@@ -96,7 +101,7 @@ export const UsersPage: React.FC = () => {
         {[
           { label: 'Total Users', value: total, color: 'bg-teal-500' },
           { label: 'Google Users', value: users.filter(u => u.authProvider === 'google').length, color: 'bg-blue-500' },
-          { label: 'Email OTP', value: users.filter(u => u.authProvider === 'email_otp').length, color: 'bg-green-500' },
+          { label: 'Profile Completed', value: users.filter(u => u.isProfileComplete).length, color: 'bg-green-500' },
           { label: 'Guest Users', value: users.filter(u => u.authProvider === 'guest').length, color: 'bg-gray-500' },
         ].map((card) => (
           <div key={card.label} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 border border-gray-200 dark:border-gray-700">
@@ -117,7 +122,7 @@ export const UsersPage: React.FC = () => {
             type="text"
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            placeholder="Search by name or email..."
+            placeholder="Search by name, email, phone, city..."
             className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-teal-500 focus:border-transparent"
           />
         </div>
@@ -147,9 +152,10 @@ export const UsersPage: React.FC = () => {
             <thead className="bg-gray-50 dark:bg-gray-700/50">
               <tr>
                 <th className="px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">User</th>
-                <th className="px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Auth Provider</th>
+                <th className="px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Phone</th>
+                <th className="px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Location</th>
+                <th className="px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Profile</th>
                 <th className="px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Queries</th>
-                <th className="px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Last Login</th>
                 <th className="px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Joined</th>
               </tr>
             </thead>
@@ -164,12 +170,12 @@ export const UsersPage: React.FC = () => {
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-full bg-teal-100 dark:bg-teal-900 flex items-center justify-center">
                         <span className="text-sm font-medium text-teal-700 dark:text-teal-300">
-                          {(user.displayName || user.email || 'G')[0].toUpperCase()}
+                          {(user.fullName || user.displayName || user.email || 'G')[0].toUpperCase()}
                         </span>
                       </div>
                       <div>
                         <p className="text-sm font-medium text-gray-900 dark:text-white">
-                          {user.displayName || 'Guest User'}
+                          {user.fullName || user.displayName || 'Guest User'}
                         </p>
                         <p className="text-xs text-gray-500 dark:text-gray-400">
                           {user.email || 'No email'}
@@ -177,14 +183,27 @@ export const UsersPage: React.FC = () => {
                       </div>
                     </div>
                   </td>
-                  <td className="px-4 py-3">{providerBadge(user.authProvider)}</td>
+                  <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
+                    {user.phone || (user.phoneNumber ? `${user.countryCode || '+91'} ${user.phoneNumber}` : '—')}
+                  </td>
+                  <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
+                    {user.city ? `${user.city}${user.pinCode ? ` (${user.pinCode})` : ''}` : '—'}
+                  </td>
+                  <td className="px-4 py-3">
+                    {user.isProfileComplete ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">
+                        <CheckCircle2 size={12} /> Complete
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
+                        <AlertCircle size={12} /> Pending
+                      </span>
+                    )}
+                  </td>
                   <td className="px-4 py-3">
                     <span className="text-sm font-medium text-gray-900 dark:text-white">
                       {user.queryCount || 0}
                     </span>
-                  </td>
-                  <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
-                    {formatDate(user.lastLoginAt)}
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
                     {formatDate(user.createdAt)}
@@ -224,33 +243,82 @@ export const UsersPage: React.FC = () => {
       {/* User Detail Modal */}
       {selectedUser && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl max-w-lg w-full max-h-[80vh] overflow-y-auto">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl max-w-lg w-full max-h-[85vh] overflow-y-auto">
             <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">User Details</h3>
               <button onClick={() => setSelectedUser(null)} className="text-gray-400 hover:text-gray-600">
                 <X size={20} />
               </button>
             </div>
-            <div className="p-6 space-y-4">
+            <div className="p-6 space-y-5">
               <div className="flex items-center gap-4">
                 <div className="w-14 h-14 rounded-full bg-teal-100 dark:bg-teal-900 flex items-center justify-center">
                   <span className="text-xl font-bold text-teal-700 dark:text-teal-300">
-                    {(selectedUser.displayName || selectedUser.email || 'G')[0].toUpperCase()}
+                    {(selectedUser.fullName || selectedUser.displayName || selectedUser.email || 'G')[0].toUpperCase()}
                   </span>
                 </div>
                 <div>
                   <p className="text-lg font-semibold text-gray-900 dark:text-white">
-                    {selectedUser.displayName || 'Guest User'}
+                    {selectedUser.fullName || selectedUser.displayName || 'Guest User'}
                   </p>
-                  {providerBadge(selectedUser.authProvider)}
+                  <div className="flex items-center gap-2 mt-1">
+                    {providerBadge(selectedUser.authProvider)}
+                    {selectedUser.isProfileComplete ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">
+                        <CheckCircle2 size={12} /> Profile Complete
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
+                        <AlertCircle size={12} /> Incomplete Profile
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="flex items-center gap-2 text-sm">
-                  <Mail size={14} className="text-gray-400" />
-                  <span className="text-gray-600 dark:text-gray-300">{selectedUser.email || 'N/A'}</span>
+              {/* Contact & Location Details */}
+              <div className="bg-gray-50 dark:bg-gray-700/30 rounded-xl p-4 space-y-3">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                  Profile & Contact Information
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                  <div className="flex items-center gap-2">
+                    <Mail size={16} className="text-teal-500 shrink-0" />
+                    <div>
+                      <p className="text-xs text-gray-400">Email</p>
+                      <p className="text-gray-800 dark:text-gray-200 font-medium truncate">{selectedUser.email || 'N/A'}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Phone size={16} className="text-teal-500 shrink-0" />
+                    <div>
+                      <p className="text-xs text-gray-400">Phone Number</p>
+                      <p className="text-gray-800 dark:text-gray-200 font-medium">
+                        {selectedUser.phone || (selectedUser.phoneNumber ? `${selectedUser.countryCode || '+91'} ${selectedUser.phoneNumber}` : 'Not provided')}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <MapPin size={16} className="text-teal-500 shrink-0" />
+                    <div>
+                      <p className="text-xs text-gray-400">City & Pincode</p>
+                      <p className="text-gray-800 dark:text-gray-200 font-medium">
+                        {selectedUser.city ? `${selectedUser.city} - ${selectedUser.pinCode || 'N/A'}` : 'Not provided'}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Globe size={16} className="text-teal-500 shrink-0" />
+                    <div>
+                      <p className="text-xs text-gray-400">Country</p>
+                      <p className="text-gray-800 dark:text-gray-200 font-medium">{selectedUser.country || 'India'}</p>
+                    </div>
+                  </div>
                 </div>
+              </div>
+
+              {/* Activity Stats */}
+              <div className="grid grid-cols-2 gap-3">
                 <div className="flex items-center gap-2 text-sm">
                   <MessageCircle size={14} className="text-gray-400" />
                   <span className="text-gray-600 dark:text-gray-300">{selectedUser.queryCount || 0} queries</span>
@@ -259,7 +327,7 @@ export const UsersPage: React.FC = () => {
                   <Clock size={14} className="text-gray-400" />
                   <span className="text-gray-600 dark:text-gray-300">Joined {formatDate(selectedUser.createdAt)}</span>
                 </div>
-                <div className="flex items-center gap-2 text-sm">
+                <div className="flex items-center gap-2 text-sm col-span-2">
                   <Shield size={14} className="text-gray-400" />
                   <span className="text-gray-600 dark:text-gray-300">Last login {formatDate(selectedUser.lastLoginAt)}</span>
                 </div>

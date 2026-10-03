@@ -115,4 +115,39 @@ class AuthViewModel @Inject constructor(private val api: AuthApi, private val st
         _loginState.value = false
         if (!revoked) _errorMessage.value = "Signed out on this device. The server could not be reached to revoke the session."
     }
+
+    fun updateProfile(
+        fullName: String,
+        countryCode: String,
+        phoneNumber: String,
+        city: String,
+        country: String,
+        pinCode: String,
+        onSuccess: () -> Unit
+    ) = runOperation {
+        val payload = mapOf(
+            "fullName" to fullName.trim(),
+            "countryCode" to countryCode.trim(),
+            "phoneNumber" to phoneNumber.trim(),
+            "city" to city.trim(),
+            "country" to country.trim(),
+            "pinCode" to pinCode.trim()
+        )
+        val response = api.updateProfile(payload)
+        check(response.success && response.user != null) { response.message ?: "Failed to update profile." }
+        val current = store.session.value
+        if (current != null) {
+            withContext(Dispatchers.IO) {
+                store.save(AuthResponse(
+                    success = true,
+                    token = current.token,
+                    expiresAt = current.expiresAt,
+                    user = response.user
+                ))
+            }
+        }
+        withContext(Dispatchers.Main) {
+            onSuccess()
+        }
+    }
 }

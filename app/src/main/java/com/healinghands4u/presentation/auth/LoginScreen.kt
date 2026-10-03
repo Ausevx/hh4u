@@ -1,57 +1,35 @@
 package com.healinghands4u.presentation.auth
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import android.widget.Toast
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material.icons.filled.Email
-import androidx.compose.material.icons.filled.HealthAndSafety
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Send
-import androidx.compose.material3.Button
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Divider
-import androidx.compose.material3.ElevatedCard
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.filled.Security
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.healinghands4u.auth.AuthUser
 import com.healinghands4u.config.BrandingConfig
 import com.healinghands4u.presentation.common.TestTags
-
-import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.LaunchedEffect
-import android.widget.Toast
-import androidx.compose.ui.platform.LocalContext
+import com.healinghands4u.presentation.theme.AppIcons
+import com.healinghands4u.presentation.theme.trustedTealColors
 
 private fun isHiltAvailable(context: android.content.Context): Boolean {
     var ctx: android.content.Context? = context
@@ -70,11 +48,9 @@ private fun isHiltAvailable(context: android.content.Context): Boolean {
 @Composable
 fun LoginScreen(
     modifier: Modifier = Modifier,
-    onLoginSuccess: () -> Unit = {},
-    onGuestClick: () -> Unit = onLoginSuccess,
+    onLoginSuccess: (AuthUser?) -> Unit = {},
+    onGuestClick: () -> Unit = { onLoginSuccess(null) },
     onGoogleClick: () -> Unit = {},
-    onOtpRequested: (String) -> Unit = {},
-    onOtpVerified: (String, String) -> Unit = { _, _ -> },
     viewModel: AuthViewModel? = null
 ) {
     val context = LocalContext.current
@@ -85,21 +61,15 @@ fun LoginScreen(
         null
     }
 
-    var email by remember { mutableStateOf("") }
-    var otp by remember { mutableStateOf("") }
-    val sentEmail by actualViewModel?.otpEmail?.collectAsState() ?: remember { mutableStateOf<String?>(null) }
-    val otpSent = sentEmail == email.trim().lowercase()
+    val tokens = MaterialTheme.trustedTealColors
     val busy by actualViewModel?.busy?.collectAsState() ?: remember { mutableStateOf(false) }
-    val resendSeconds by actualViewModel?.resendSeconds?.collectAsState() ?: remember { mutableStateOf(0) }
     val session by actualViewModel?.session?.collectAsState() ?: remember { mutableStateOf<com.healinghands4u.auth.AuthSession?>(null) }
-    
     val loginSuccess by actualViewModel?.loginState?.collectAsState() ?: remember { mutableStateOf(false) }
     val errorMessage by actualViewModel?.errorMessage?.collectAsState() ?: remember { mutableStateOf<String?>(null) }
 
-    
     LaunchedEffect(loginSuccess) {
         if (loginSuccess) {
-            onLoginSuccess()
+            onLoginSuccess(session?.user)
         }
     }
 
@@ -110,24 +80,102 @@ fun LoginScreen(
         }
     }
 
-
     val scrollState = rememberScrollState()
 
+    // If already logged in, show account summary
     if (session != null && session?.user?.authProvider != "guest") {
-        Column(modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            Text("Your account", style = MaterialTheme.typography.headlineMedium)
-            Text(session?.user?.displayName.orEmpty())
-            Text(session?.user?.email.orEmpty())
-            Button(onClick = onLoginSuccess, enabled = !busy) { Text("Continue to assistant") }
-            OutlinedButton(onClick = { actualViewModel?.signOut(context) }, enabled = !busy) { Text("Sign out") }
-            if (busy) androidx.compose.material3.LinearProgressIndicator(Modifier.fillMaxWidth())
+        Surface(
+            modifier = modifier.fillMaxSize(),
+            color = tokens.bg
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(28.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(72.dp)
+                        .clip(CircleShape)
+                        .background(tokens.accent.copy(alpha = 0.15f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.AccountCircle,
+                        contentDescription = "User",
+                        tint = tokens.accent,
+                        modifier = Modifier.size(48.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(18.dp))
+
+                Text(
+                    text = "Welcome Back",
+                    style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
+                    color = tokens.ink
+                )
+
+                Spacer(modifier = Modifier.height(6.dp))
+
+                Text(
+                    text = session?.user?.fullName ?: session?.user?.displayName.orEmpty(),
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                    color = tokens.ink
+                )
+
+                Text(
+                    text = session?.user?.email.orEmpty(),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = tokens.inkDim
+                )
+
+                Spacer(modifier = Modifier.height(28.dp))
+
+                Button(
+                    onClick = { onLoginSuccess(session?.user) },
+                    enabled = !busy,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = tokens.accent)
+                ) {
+                    Text(
+                        text = if (session?.user?.isProfileComplete == true) "Continue to Assistant" else "Complete Profile",
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                OutlinedButton(
+                    onClick = { actualViewModel?.signOut(context) },
+                    enabled = !busy,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, tokens.line)
+                ) {
+                    Text("Sign out", color = tokens.inkDim)
+                }
+
+                if (busy) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth(), color = tokens.accent)
+                }
+            }
         }
         return
     }
 
+    // Google Sign-In Screen
     Surface(
         modifier = modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background
+        color = tokens.bg
     ) {
         Column(
             modifier = Modifier
@@ -135,226 +183,141 @@ fun LoginScreen(
                 .verticalScroll(scrollState)
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Top
+            verticalArrangement = Arrangement.Center
         ) {
             Spacer(modifier = Modifier.height(32.dp))
 
-            // Branding Header
-            Column(
+            // Brand Logo
+            Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag(TestTags.LOGIN_HEADER),
-                horizontalAlignment = Alignment.CenterHorizontally
+                    .size(80.dp)
+                    .clip(CircleShape)
+                    .background(tokens.accent.copy(alpha = 0.12f)),
+                contentAlignment = Alignment.Center
             ) {
-                Surface(
-                    shape = CircleShape,
-                    color = MaterialTheme.colorScheme.primaryContainer,
-                    modifier = Modifier.size(72.dp)
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            imageVector = Icons.Default.HealthAndSafety,
-                            contentDescription = "App Logo",
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(40.dp)
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Text(
-                    text = BrandingConfig.APP_NAME,
-                    style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.primary,
-                    textAlign = TextAlign.Center
-                )
-
-                Spacer(modifier = Modifier.height(6.dp))
-
-                Text(
-                    text = "Holistic Homeopathic Healing & Care",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center
+                Icon(
+                    imageVector = AppIcons.Leaf,
+                    contentDescription = "Healing Hands4U",
+                    tint = tokens.accent,
+                    modifier = Modifier.size(44.dp)
                 )
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
-            // Option 1: Email OTP Authentication
-            if (busy) androidx.compose.material3.LinearProgressIndicator(Modifier.fillMaxWidth())
-            ElevatedCard(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag(TestTags.AUTH_OPTION_OTP),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.elevatedCardColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                )
+            Text(
+                text = BrandingConfig.APP_NAME,
+                style = MaterialTheme.typography.headlineLarge.copy(
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 30.sp
+                ),
+                color = tokens.ink,
+                textAlign = TextAlign.Center
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = "Holistic Healthcare & Homeopathic Guidance",
+                style = MaterialTheme.typography.bodyLarge,
+                color = tokens.inkDim,
+                textAlign = TextAlign.Center
+            )
+
+            Spacer(modifier = Modifier.height(48.dp))
+
+            // Primary Google Sign-In Card
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = tokens.surface),
+                border = BorderStroke(1.dp, tokens.line),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp)
+                        .padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = "Sign in with Email OTP",
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                        color = MaterialTheme.colorScheme.onSurface
+                        text = "Sign In / Register",
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                        color = tokens.ink
                     )
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
 
-                    OutlinedTextField(
-                        value = email,
-                        onValueChange = { email = it; otp = "" },
-                        enabled = !busy,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .testTag(TestTags.LOGIN_EMAIL_INPUT),
-                        label = { Text("Email Address") },
-                        leadingIcon = {
-                            Icon(imageVector = Icons.Default.Email, contentDescription = "Email")
-                        },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                        shape = RoundedCornerShape(10.dp)
+                    Text(
+                        text = "Use your Google account for instant, secure authentication. No password needed.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = tokens.inkDim,
+                        textAlign = TextAlign.Center
                     )
 
-                    Spacer(modifier = Modifier.height(10.dp))
+                    Spacer(modifier = Modifier.height(24.dp))
 
                     Button(
                         onClick = {
-                            if (email.isNotBlank()) {
-                                actualViewModel?.requestOtp(email)
-                                onOtpRequested(email)
-                            }
+                            actualViewModel?.googleSignIn(context)
+                            onGoogleClick()
                         },
-                        enabled = !busy && resendSeconds == 0 && email.isNotBlank(),
+                        enabled = !busy,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .testTag(TestTags.LOGIN_SEND_OTP_BUTTON),
-                        shape = RoundedCornerShape(10.dp)
+                            .height(52.dp)
+                            .testTag(TestTags.LOGIN_GOOGLE_BUTTON),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = tokens.accent,
+                            contentColor = tokens.accentInk
+                        ),
+                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
                     ) {
-                        Icon(imageVector = Icons.Default.Send, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(if (resendSeconds > 0) "Resend in ${resendSeconds}s" else if (otpSent) "Resend OTP" else "Send OTP")
-                    }
-
-                    if (otpSent || otp.isNotEmpty()) {
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        OutlinedTextField(
-                            value = otp,
-                            onValueChange = { otp = it.filter { c -> c in '0'..'9' }.take(6) },
-                            enabled = !busy,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .testTag(TestTags.LOGIN_OTP_INPUT),
-                            label = { Text("6-Digit OTP") },
-                            leadingIcon = {
-                                Icon(imageVector = Icons.Default.Lock, contentDescription = "OTP")
-                            },
-                            singleLine = true,
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            shape = RoundedCornerShape(10.dp)
-                        )
-
-                        Spacer(modifier = Modifier.height(10.dp))
-
-                        Button(
-                            onClick = {
-                                if (otp.isNotBlank()) {
-                                    actualViewModel?.verifyOtp(email, otp)
-                                    onOtpVerified(email, otp)
-                                }
-                            },
-                            enabled = !busy && otp.length == 6,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .testTag(TestTags.LOGIN_VERIFY_OTP_BUTTON),
-                            shape = RoundedCornerShape(10.dp)
-                        ) {
-                            Text("Verify & Sign In")
+                        if (busy) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                color = tokens.accentInk,
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.Security,
+                                    contentDescription = "Google Sign In",
+                                    modifier = Modifier.size(20.dp),
+                                    tint = tokens.accentInk
+                                )
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Text(
+                                    text = "Continue with Google",
+                                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)
+                                )
+                            }
                         }
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(32.dp))
 
-            // Divider with "OR"
+            // Privacy / Disclaimer Note
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
             ) {
-                Divider(modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.outlineVariant)
-                Text(
-                    text = "OR",
-                    modifier = Modifier.padding(horizontal = 12.dp),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.outline
+                Icon(
+                    imageVector = Icons.Default.Lock,
+                    contentDescription = null,
+                    tint = tokens.inkDim,
+                    modifier = Modifier.size(16.dp)
                 )
-                Divider(modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.outlineVariant)
-            }
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            // Option 2: Google Sign-In
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag(TestTags.AUTH_OPTION_GOOGLE)
-            ) {
-                OutlinedButton(
-                    onClick = { actualViewModel?.googleSignIn(context); onGoogleClick() },
-                    enabled = !busy,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(50.dp)
-                        .testTag(TestTags.LOGIN_GOOGLE_BUTTON),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Text(
-                        text = "Sign in with Google",
-                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold)
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(14.dp))
-
-            // Option 3: Guest Access
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag(TestTags.AUTH_OPTION_GUEST)
-            ) {
-                OutlinedButton(
-                    onClick = {
-                        if (actualViewModel != null) actualViewModel.loginAnonymously() else onGuestClick()
-                    },
-                    enabled = !busy,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(50.dp)
-                        .testTag(TestTags.LOGIN_GUEST_BUTTON),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.AccountCircle,
-                        contentDescription = "Guest",
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Continue as Guest",
-                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = "Your data is encrypted & strictly confidential",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = tokens.inkDim
+                )
             }
 
             Spacer(modifier = Modifier.height(24.dp))

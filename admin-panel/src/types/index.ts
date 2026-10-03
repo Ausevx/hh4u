@@ -128,6 +128,14 @@ export interface AppUser {
   id: string;
   email?: string | null;
   displayName?: string | null;
+  fullName?: string | null;
+  phone?: string | null;
+  countryCode?: string | null;
+  phoneNumber?: string | null;
+  city?: string | null;
+  country?: string | null;
+  pinCode?: string | null;
+  isProfileComplete?: boolean;
   authProvider: 'email_otp' | 'google' | 'guest';
   createdAt: string;
   lastLoginAt: string;

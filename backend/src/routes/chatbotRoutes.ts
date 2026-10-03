@@ -1,7 +1,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { searchTelemetry } from '../services/searchTelemetry';
 import chatbotController from '../controllers/chatbotController';
-import { validateSession, InvalidSession } from '../middlewares/authMiddleware';
+import { validateSession, InvalidSession, authenticateToken } from '../middlewares/authMiddleware';
 
 const router = Router();
 router.use(searchTelemetry);
@@ -40,6 +40,10 @@ router.post('/query', optionalAuthenticateToken, (req, res) =>
 
 router.post('/consultation-answer', optionalAuthenticateToken, (req, res) =>
   chatbotController.handleConsultationAnswer(req, res)
+);
+
+router.get('/history', authenticateToken, (req, res) =>
+  chatbotController.handleHistory(req, res)
 );
 
 export default router;

@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import mongoose from 'mongoose';
 import chatbotService from '../services/chatbotService';
 import consultationService from '../services/consultationService';
+import ChatbotSession from '../models/ChatbotSession';
 
 export class ChatbotController {
   /**
@@ -162,6 +163,52 @@ export class ChatbotController {
         success: false,
         message: error.message || 'Error resolving consultation answer',
         code: error.code,
+      });
+    }
+  }
+
+  /**
+   * GET /chatbot/history & GET /api/chatbot/history
+   */
+  public async handleHistory(req: Request, res: Response): Promise<void> {
+    try {
+      const userId = req.user?.userId;
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          message: 'Please sign in to view history',
+        });
+        return;
+      }
+
+      const sessions = await ChatbotSession.find({ userId })
+        .sort({ createdAt: -1 })
+        .limit(50)
+        .populate('matchedLevel1QuestionId', 'canonicalQuestionText')
+        .populate('finalAnswerId', 'remedyName remedyText answerText')
+        .lean();
+
+      const history = sessions.map((s) => ({
+        id: s._id.toString(),
+        queryText: s.originalQueryText,
+        language: s.originalLanguage,
+        intent: s.intent,
+        inputMode: s.inputMode,
+        matchConfident: s.matchConfident,
+        matchedQuestion: (s.matchedLevel1QuestionId as any)?.canonicalQuestionText || null,
+        remedyName: (s.finalAnswerId as any)?.remedyName || (s.finalAnswerId as any)?.remedyText || null,
+        createdAt: s.createdAt,
+      }));
+
+      res.status(200).json({
+        success: true,
+        history,
+      });
+    } catch (error: any) {
+      console.error('CHATBOT HISTORY ERROR:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Error fetching conversation history',
       });
     }
   }

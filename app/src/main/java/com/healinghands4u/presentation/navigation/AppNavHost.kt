@@ -9,7 +9,10 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.navigation.NavType
 import com.healinghands4u.presentation.auth.LoginScreen
+import com.healinghands4u.presentation.auth.ProfileOnboardingScreen
+import com.healinghands4u.presentation.auth.ProfileScreen
 import com.healinghands4u.presentation.assistant.WellnessAssistantScreen
+import com.healinghands4u.presentation.history.HistoryScreen
 import com.healinghands4u.presentation.chatbot.answer.ChatbotAnswerScreen
 import com.healinghands4u.presentation.chatbot.consultation.ConsultationRoute
 import com.healinghands4u.presentation.clinic.ClinicConditionsScreen
@@ -33,14 +36,25 @@ fun AppNavHost(
     ) {
         composable(Screen.Login.route) {
             LoginScreen(
-                onLoginSuccess = {
-                    navController.navigate(Screen.ChatbotQuery.route) {
-                        popUpTo(Screen.Login.route) { inclusive = true }
+                onLoginSuccess = { user ->
+                    if (user?.isProfileComplete == true) {
+                        navController.navigate(Screen.ChatbotQuery.route) {
+                            popUpTo(Screen.Login.route) { inclusive = true }
+                        }
+                    } else {
+                        navController.navigate(Screen.ProfileOnboarding.route) {
+                            popUpTo(Screen.Login.route) { inclusive = true }
+                        }
                     }
-                },
-                onGuestClick = {
+                }
+            )
+        }
+
+        composable(Screen.ProfileOnboarding.route) {
+            ProfileOnboardingScreen(
+                onCompleted = {
                     navController.navigate(Screen.ChatbotQuery.route) {
-                        popUpTo(Screen.Login.route) { inclusive = true }
+                        popUpTo(Screen.ProfileOnboarding.route) { inclusive = true }
                     }
                 }
             )
@@ -94,10 +108,10 @@ fun AppNavHost(
                     navController.navigate(Screen.Clinic.route)
                 },
                 onNavigateToHistory = {
-                    // Placeholder for now
+                    navController.navigate(Screen.History.route)
                 },
                 onNavigateToProfile = {
-                    navController.navigate(Screen.Login.route)
+                    navController.navigate(Screen.Profile.route)
                 },
                 onSendQuery = { query, isConsultation ->
                     val encoded = android.net.Uri.encode(query)
@@ -170,6 +184,30 @@ fun AppNavHost(
                 onBackClick = {
                     navController.popBackStack()
                 }
+            )
+        }
+
+        composable(Screen.History.route) {
+            HistoryScreen(
+                onBackClick = { navController.popBackStack() },
+                onNavigateToLogin = { navController.navigate(Screen.Login.route) },
+                onSelectQuery = { query, isConsultation ->
+                    val encoded = android.net.Uri.encode(query)
+                    if (isConsultation) {
+                        navController.navigate("${Screen.Consultation.route}?query=$encoded")
+                    } else {
+                        navController.navigate("${Screen.ChatbotAnswer.route}?query=$encoded")
+                    }
+                }
+            )
+        }
+
+        composable(Screen.Profile.route) {
+            ProfileScreen(
+                onBackClick = { navController.popBackStack() },
+                onNavigateToLogin = { navController.navigate(Screen.Login.route) },
+                onNavigateToOnboarding = { navController.navigate(Screen.ProfileOnboarding.route) },
+                onNavigateToHistory = { navController.navigate(Screen.History.route) }
             )
         }
     }

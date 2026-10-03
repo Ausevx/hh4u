@@ -1,7 +1,26 @@
 package com.healinghands4u.data.remote
 
 import retrofit2.http.Body
+import retrofit2.http.GET
 import retrofit2.http.POST
+
+data class ChatHistoryItemDto(
+    val id: String,
+    val queryText: String,
+    val language: String? = null,
+    val intent: String? = null,
+    val inputMode: String? = null,
+    val matchConfident: Boolean? = null,
+    val matchedQuestion: String? = null,
+    val remedyName: String? = null,
+    val createdAt: String? = null
+)
+
+data class ChatHistoryResponse(
+    val success: Boolean,
+    val history: List<ChatHistoryItemDto> = emptyList(),
+    val message: String? = null
+)
 
 data class ChatbotQueryRequest(
     val queryText: String,
@@ -78,4 +97,7 @@ interface ChatbotApi {
 
     @POST("api/chatbot/consultation-answer")
     suspend fun resolveConsultationAnswer(@Body request: ConsultationAnswerRequest): ConsultationResolutionResponse
+
+    @GET("api/chatbot/history")
+    suspend fun getChatHistory(): ChatHistoryResponse
 }

@@ -25,6 +25,10 @@ class ChatbotViewModelEmpiricalTest {
         override suspend fun resolveConsultationAnswer(request: ConsultationAnswerRequest): ConsultationResolutionResponse {
             throw NotImplementedError()
         }
+
+        override suspend fun getChatHistory(): ChatHistoryResponse {
+            throw NotImplementedError()
+        }
     }
 
     @Test

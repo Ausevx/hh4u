@@ -61,6 +61,8 @@ class OfflineBehaviorTest {
                     throw AssertionError("Offline search must not call the backend")
                 override suspend fun resolveConsultationAnswer(request: ConsultationAnswerRequest): ConsultationResolutionResponse =
                     throw AssertionError("Offline search must not call the backend")
+                override suspend fun getChatHistory(): ChatHistoryResponse =
+                    throw AssertionError("Offline search must not call the backend")
             }
             val vm = ChatbotViewModel(forbiddenApi, repository)
             vm.querySymptoms("headache")
@@ -102,6 +104,7 @@ class OfflineBehaviorTest {
         val chat = object : ChatbotApi {
             override suspend fun queryChatbot(request: ChatbotQueryRequest): ChatbotQueryResponse = error("Network forbidden")
             override suspend fun resolveConsultationAnswer(request: ConsultationAnswerRequest): ConsultationResolutionResponse = error("Network forbidden")
+            override suspend fun getChatHistory(): ChatHistoryResponse = error("Network forbidden")
         }
         val result = ConsultationRepository(chat, repository).resolve(null, entry.id, questions,
             questions.associate { it.id to "yes" }, entry)

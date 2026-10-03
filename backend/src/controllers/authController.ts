@@ -13,9 +13,23 @@ const normalizeEmail = (value: unknown): string | undefined =>
 export const hashOtp = (email: string, otp: string): string =>
   createHmac('sha256', getJwtSecret()).update(`${email}:${otp}`).digest('hex');
 export const tokenHash = (token: string): string => createHash('sha256').update(token).digest('hex');
-const profile = (user: any) => ({ id: user._id.toString(), email: user.email,
-  displayName: user.displayName, authProvider: user.authProvider, avatarUrl: user.avatarUrl,
-  createdAt: user.createdAt, lastLoginAt: user.lastLoginAt });
+const profile = (user: any) => ({
+  id: user._id.toString(),
+  email: user.email,
+  displayName: user.displayName,
+  fullName: user.fullName || user.displayName || '',
+  authProvider: user.authProvider,
+  avatarUrl: user.avatarUrl,
+  phone: user.phone || '',
+  countryCode: user.countryCode || '+91',
+  phoneNumber: user.phoneNumber || '',
+  city: user.city || '',
+  country: user.country || 'India',
+  pinCode: user.pinCode || '',
+  isProfileComplete: !!user.isProfileComplete,
+  createdAt: user.createdAt,
+  lastLoginAt: user.lastLoginAt
+});
 function signedIn(res: Response, user: any, message: string) {
   const token = generateToken({ userId: user._id.toString(), email: user.email, authProvider: user.authProvider });
   res.json({ success: true, message, token, expiresAt: Date.now() + 30 * 86400000, user: profile(user) });
@@ -92,18 +106,90 @@ export const googleAuth = async (req: Request, res: Response): Promise<void> => 
       (!existing.googleId && !email.endsWith('@gmail.com') && !payload.hd))) {
       res.status(409).json({ success: false, message: 'Please sign in to this existing account using email OTP.' }); return;
     }
-    user = existing || new User({ email, displayName: payload.name || email.split('@')[0] });
+    user = existing || new User({
+      email,
+      displayName: payload.name || email.split('@')[0],
+      fullName: payload.name || '',
+      isProfileComplete: false
+    });
   }
   user.authProvider = 'google'; user.googleId = payload.sub;
   user.avatarUrl = payload.picture; user.lastLoginAt = new Date();
   await user.save();
   signedIn(res, user, 'Google authentication successful');
 };
+
+export const updateProfile = async (req: Request, res: Response): Promise<void> => {
+  const userId = req.user?.userId;
+  if (!userId) {
+    res.status(401).json({ success: false, message: 'Please sign in to update profile.' });
+    return;
+  }
+
+  const { fullName, countryCode, phoneNumber, city, country, pinCode } = req.body || {};
+
+  const cleanName = typeof fullName === 'string' ? fullName.trim() : '';
+  const cleanCode = typeof countryCode === 'string' && countryCode.trim() ? countryCode.trim() : '+91';
+  const cleanPhone = typeof phoneNumber === 'string' ? phoneNumber.trim() : '';
+  const cleanCity = typeof city === 'string' ? city.trim() : '';
+  const cleanCountry = typeof country === 'string' && country.trim() ? country.trim() : 'India';
+  const cleanPin = typeof pinCode === 'string' ? pinCode.trim() : '';
+
+  if (!cleanName || cleanName.length < 2) {
+    res.status(400).json({ success: false, message: 'Full name is required (at least 2 characters).' });
+    return;
+  }
+  if (!cleanPhone || !/^\d{6,15}$/.test(cleanPhone.replace(/[\s-]/g, ''))) {
+    res.status(400).json({ success: false, message: 'A valid phone number is required.' });
+    return;
+  }
+  if (!cleanCity) {
+    res.status(400).json({ success: false, message: 'City is required.' });
+    return;
+  }
+  if (!cleanPin || !/^[A-Za-z0-9\s-]{3,10}$/.test(cleanPin)) {
+    res.status(400).json({ success: false, message: 'A valid PIN / postal code is required.' });
+    return;
+  }
+
+  const formattedPhone = `${cleanCode} ${cleanPhone}`.trim();
+
+  const user = await User.findByIdAndUpdate(
+    userId,
+    {
+      $set: {
+        fullName: cleanName,
+        displayName: cleanName,
+        countryCode: cleanCode,
+        phoneNumber: cleanPhone,
+        phone: formattedPhone,
+        city: cleanCity,
+        country: cleanCountry,
+        pinCode: cleanPin,
+        isProfileComplete: true
+      }
+    },
+    { new: true }
+  );
+
+  if (!user) {
+    res.status(404).json({ success: false, message: 'User not found.' });
+    return;
+  }
+
+  res.status(200).json({
+    success: true,
+    message: 'Profile updated successfully',
+    user: profile(user)
+  });
+};
+
 export const getMe = async (req: Request, res: Response): Promise<void> => {
   const user = await User.findById(req.user?.userId);
   if (!user) { res.status(401).json({ success: false, message: 'Please sign in again.' }); return; }
   res.json({ success: true, user: profile(user) });
 };
+
 export const logout = async (req: Request, res: Response): Promise<void> => {
   await RevokedToken.updateOne({ _id: tokenHash(req.headers.authorization!.substring(7).trim()) },
     { $set: { expiresAt: new Date(req.user!.exp! * 1000) } }, { upsert: true });

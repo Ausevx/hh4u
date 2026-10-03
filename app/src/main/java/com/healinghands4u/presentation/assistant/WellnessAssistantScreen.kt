@@ -61,23 +61,16 @@ fun WellnessAssistantScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Column {
-                        Text(
-                            text = "Healing Hub 4U",
-                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                            color = tokens.accent
-                        )
-                        Text(
-                            text = "v${com.healinghands4u.BuildConfig.VERSION_NAME} (build ${com.healinghands4u.BuildConfig.VERSION_CODE})",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = tokens.inkDim
-                        )
-                    }
+                    Text(
+                        text = "Healing Hub 4U",
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                        color = tokens.accent
+                    )
 
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         TextButton(
                             onClick = onNavigateToClinic,
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
                             modifier = Modifier.height(36.dp)
                         ) {
                             Text(
@@ -86,8 +79,20 @@ fun WellnessAssistantScreen(
                                 color = com.healinghands4u.presentation.theme.ClinicalTertiary
                             )
                         }
+
+                        IconButton(
+                            onClick = onNavigateToHistory,
+                            modifier = Modifier.size(36.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.History,
+                                contentDescription = "History",
+                                tint = tokens.accent,
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
                         
-                        Spacer(modifier = Modifier.width(12.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
 
                         Box(
                             modifier = Modifier
@@ -149,16 +154,7 @@ fun WellnessAssistantScreen(
                 textAlign = TextAlign.Center
             )
             
-            Spacer(modifier = Modifier.height(12.dp))
-            
-            Text(
-                text = "Ask freely in English, Hindi, or Hinglish.",
-                style = MaterialTheme.typography.bodyLarge,
-                color = tokens.inkDim,
-                textAlign = TextAlign.Center
-            )
-
-            Spacer(modifier = Modifier.height(48.dp))
+            Spacer(modifier = Modifier.height(40.dp))
 
             // Suggestions Header
             Row(

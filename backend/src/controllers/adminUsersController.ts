@@ -22,7 +22,12 @@ export const listUsers = async (req: Request, res: Response): Promise<void> => {
     if (search) {
       filter.$or = [
         { displayName: { $regex: search, $options: 'i' } },
+        { fullName: { $regex: search, $options: 'i' } },
         { email: { $regex: search, $options: 'i' } },
+        { phone: { $regex: search, $options: 'i' } },
+        { phoneNumber: { $regex: search, $options: 'i' } },
+        { city: { $regex: search, $options: 'i' } },
+        { pinCode: { $regex: search, $options: 'i' } },
       ];
     }
 
@@ -51,10 +56,18 @@ export const listUsers = async (req: Request, res: Response): Promise<void> => {
       queryCountMap.set(entry._id.toString(), entry.count);
     }
 
-    const usersWithCounts = users.map((u) => ({
+    const usersWithCounts = users.map((u: any) => ({
       id: u._id.toString(),
       email: u.email || null,
       displayName: u.displayName || null,
+      fullName: u.fullName || u.displayName || null,
+      phone: u.phone || (u.phoneNumber ? `${u.countryCode || '+91'} ${u.phoneNumber}` : null),
+      countryCode: u.countryCode || '+91',
+      phoneNumber: u.phoneNumber || null,
+      city: u.city || null,
+      country: u.country || 'India',
+      pinCode: u.pinCode || null,
+      isProfileComplete: !!u.isProfileComplete,
       authProvider: u.authProvider,
       createdAt: u.createdAt,
       lastLoginAt: u.lastLoginAt,
@@ -103,6 +116,14 @@ export const getUserById = async (req: Request, res: Response): Promise<void> =>
         id: user._id.toString(),
         email: user.email || null,
         displayName: user.displayName || null,
+        fullName: (user as any).fullName || user.displayName || null,
+        phone: (user as any).phone || ((user as any).phoneNumber ? `${(user as any).countryCode || '+91'} ${(user as any).phoneNumber}` : null),
+        countryCode: (user as any).countryCode || '+91',
+        phoneNumber: (user as any).phoneNumber || null,
+        city: (user as any).city || null,
+        country: (user as any).country || 'India',
+        pinCode: (user as any).pinCode || null,
+        isProfileComplete: !!(user as any).isProfileComplete,
         authProvider: user.authProvider,
         avatarUrl: user.avatarUrl || null,
         createdAt: user.createdAt,

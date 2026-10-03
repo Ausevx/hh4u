@@ -5,6 +5,7 @@ import {
   verifyOtp,
   googleAuth,
   getMe,
+  updateProfile,
   logout
 } from '../controllers/authController';
 import { authenticateToken } from '../middlewares/authMiddleware';
@@ -19,6 +20,7 @@ router.post('/otp/send', requestOtp); // Alias for convenience
 router.post('/otp/verify', verifyOtp);
 router.post('/google', googleAuth);
 router.get('/me', authenticateToken, getMe);
+router.post('/profile', authenticateToken, updateProfile);
 router.post('/logout', authenticateToken, logout);
 
 export default router;
