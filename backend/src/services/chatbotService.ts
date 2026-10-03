@@ -121,27 +121,22 @@ export class ChatbotService {
       throw new Error('Query text or voiceData is required');
     }
 
-    // Detect language while embedding the original input; never translate before matching.
+    // Detect language while embedding the input.
     const userIntent = /^(hi|hello|hey|thanks|thank you|नमस्ते|नमस्कार)[!.\s]*$/i.test(originalQueryText) ? 'GREETING' : 'MEDICAL';
-    const languageWorkPromise = timed('language', async () => {
-      if (ai.llm.detectLanguage) return ai.llm.detectLanguage(originalQueryText, detectedLang);
-      if (isClearlyEnglish(originalQueryText, detectedLang)) return 'en';
-      if (ai.llm.classifyAndTranslate) return (await ai.llm.classifyAndTranslate(originalQueryText, detectedLang)).detectedLanguage;
-      return (await ai.llm.translateToEnglish(originalQueryText, detectedLang)).detectedLanguage;
-    });
-
-    languageWorkPromise.catch(() => {});
-
-    const queryEmbedding = await (userIntent === 'GREETING'
-      ? Promise.resolve([] as number[])
-      : timed('embedding', () => ai.embedding.generateEmbedding(originalQueryText)));
-
-    // Legacy field retained for session compatibility; contains the actual search input.
-    const translatedQueryText = originalQueryText;
-    let originalLanguage: string;
+    
+    let originalLanguage = 'en';
+    let translatedQueryText = originalQueryText;
 
     if (userIntent === 'GREETING') {
-      originalLanguage = await languageWorkPromise;
+      if (ai.llm.detectLanguage) {
+        originalLanguage = await ai.llm.detectLanguage(originalQueryText, detectedLang);
+      } else if (isClearlyEnglish(originalQueryText, detectedLang)) {
+        originalLanguage = 'en';
+      } else if (ai.llm.translateToEnglish) {
+        const trans = await ai.llm.translateToEnglish(originalQueryText, detectedLang);
+        originalLanguage = trans.detectedLanguage || 'en';
+      }
+
       // Fast path: skip vector search entirely for casual chat
       const { message: fallbackText } = await localizeFields(ai.llm,
         { message: 'Please describe your symptoms so I can look for saved advice from Dr. Anjali Jariwala.' },
@@ -171,13 +166,31 @@ export class ChatbotService {
       return { ...response, language: originalLanguage, ...requestMetadata() };
     }
 
+    // For MEDICAL queries: detect language & translate non-English/Hinglish queries to English for optimal embedding match
+    if (isClearlyEnglish(originalQueryText, detectedLang)) {
+      originalLanguage = 'en';
+      translatedQueryText = originalQueryText;
+    } else {
+      try {
+        const transResult = await timed('language_translate', () => ai.llm.translateToEnglish(originalQueryText, detectedLang));
+        originalLanguage = transResult.detectedLanguage || 'en';
+        translatedQueryText = transResult.translatedText || originalQueryText;
+      } catch (e) {
+        console.error('Language translation error in chatbotService:', e);
+        if (ai.llm.detectLanguage) {
+          originalLanguage = await ai.llm.detectLanguage(originalQueryText, detectedLang);
+        }
+      }
+    }
+
+    // Generate embedding using the translated English text to ensure high confidence matching against English DB questions
+    const queryEmbedding = await timed('embedding', () => ai.embedding.generateEmbedding(translatedQueryText));
 
     // 6. Vector Similarity Search against Active Level1Questions
     const rawCandidates: ScoredCandidate[] = await timed('search', () => searchLevel1Questions(
       queryEmbedding,
       config.topCandidatesCount
     ));
-    originalLanguage = await languageWorkPromise;
 
     const matchCandidates: CandidateResult[] = rawCandidates.map((c) => ({
       level1QuestionId: c.level1QuestionId.toString(),
