@@ -56,6 +56,15 @@ class AuthViewModel @Inject constructor(private val api: AuthApi, private val st
             catch (_: GetCredentialCancellationException) {
                 android.util.Log.i("AuthViewModel", "User dismissed Google account picker")
             }
+            catch (e: androidx.credentials.exceptions.GetCredentialException) {
+                val errorDetails = if (e is androidx.credentials.exceptions.GetCredentialCustomException) {
+                    "Google Sign-In failed (${e.type.substringAfterLast('.') ?: "Error"}): ${e.message ?: "Authentication rejected by Google Play Services. Please ensure SHA-256 is added in Firebase."}"
+                } else {
+                    "Google Sign-In failed: ${e.message ?: e.javaClass.simpleName}"
+                }
+                android.util.Log.e("AuthViewModel", errorDetails, e)
+                _errorMessage.value = errorDetails
+            }
             catch (e: HttpException) {
                 val errBody = try { e.response()?.errorBody()?.string().orEmpty() } catch (_: Exception) { "" }
                 android.util.Log.e("AuthViewModel", "HTTP error during auth: code=${e.code()} body=$errBody", e)
@@ -68,7 +77,7 @@ class AuthViewModel @Inject constructor(private val api: AuthApi, private val st
             }
             catch (e: Exception) {
                 android.util.Log.e("AuthViewModel", "Auth error: ${e.javaClass.simpleName} - ${e.message}", e)
-                _errorMessage.value = e.message ?: "Sign-in failed. Please try again."
+                _errorMessage.value = "${e.javaClass.simpleName}: ${e.message ?: "Sign-in failed. Please try again."}"
             }
             finally { _busy.value = false }
         }
