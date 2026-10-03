@@ -12,7 +12,28 @@
           "package_name": "com.healinghands4u"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "466552805687-2te5ol4se2nide89unhqjk67doiaru9m.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.healinghands4u",
+            "certificate_hash": "32c32e5b797b630a05a0002d0d48074eec403cc7"
+          }
+        },
+        {
+          "client_id": "466552805687-ablptqt353sp9elrrepvhlcu1ng0a0v1.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.healinghands4u",
+            "certificate_hash": "1584bbcdc8fe0ac3fe736b1f1fb940ad9f09a0ff"
+          }
+        },
+        {
+          "client_id": "466552805687-q68n5gnjopl5vcdkgbdj2lu937h4gr9c.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyCLwrk4lxvwAijYrA1hIVFgU1j0SBzdJGM"
@@ -20,7 +41,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "466552805687-q68n5gnjopl5vcdkgbdj2lu937h4gr9c.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }
