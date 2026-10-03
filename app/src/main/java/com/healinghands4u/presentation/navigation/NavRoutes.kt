@@ -8,5 +8,8 @@ sealed class Screen(val route: String) {
     object ChatbotQuery : Screen("chatbot_query")
     object Consultation : Screen("consultation")
     object ChatbotAnswer : Screen("chatbot_answer")
+    object Clinic : Screen("clinic")
+    object ClinicPlanner : Screen("clinic_planner")
+    object ClinicConditions : Screen("clinic_conditions")
     object ClinicPlaceholder : Screen("clinic_placeholder")
 }

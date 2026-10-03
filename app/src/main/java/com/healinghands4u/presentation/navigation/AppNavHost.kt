@@ -12,7 +12,10 @@ import com.healinghands4u.presentation.auth.LoginScreen
 import com.healinghands4u.presentation.assistant.WellnessAssistantScreen
 import com.healinghands4u.presentation.chatbot.answer.ChatbotAnswerScreen
 import com.healinghands4u.presentation.chatbot.consultation.ConsultationRoute
+import com.healinghands4u.presentation.clinic.ClinicConditionsScreen
 import com.healinghands4u.presentation.clinic.ClinicPlaceholderScreen
+import com.healinghands4u.presentation.clinic.ClinicPlannerScreen
+import com.healinghands4u.presentation.clinic.ClinicScreen
 import com.healinghands4u.presentation.diseaselist.DiseaseListScreen
 import com.healinghands4u.presentation.home.HomeScreen
 import com.healinghands4u.presentation.planner.PlannerScreen
@@ -88,7 +91,7 @@ fun AppNavHost(
             WellnessAssistantScreen(
                 initialQuery = initialQuery,
                 onNavigateToClinic = {
-                    navController.navigate(Screen.ClinicPlaceholder.route)
+                    navController.navigate(Screen.Clinic.route)
                 },
                 onNavigateToHistory = {
                     // Placeholder for now
@@ -107,8 +110,32 @@ fun AppNavHost(
             )
         }
         
+        composable(Screen.Clinic.route) {
+            ClinicScreen(
+                onBackClick = { navController.popBackStack() },
+                onNavigateToPlanner = { navController.navigate(Screen.ClinicPlanner.route) },
+                onNavigateToConditions = { navController.navigate(Screen.ClinicConditions.route) }
+            )
+        }
+
+        composable(Screen.ClinicPlanner.route) {
+            ClinicPlannerScreen(
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        composable(Screen.ClinicConditions.route) {
+            ClinicConditionsScreen(
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
         composable(Screen.ClinicPlaceholder.route) {
-            ClinicPlaceholderScreen()
+            ClinicScreen(
+                onBackClick = { navController.popBackStack() },
+                onNavigateToPlanner = { navController.navigate(Screen.ClinicPlanner.route) },
+                onNavigateToConditions = { navController.navigate(Screen.ClinicConditions.route) }
+            )
         }
 
         composable(
