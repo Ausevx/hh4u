@@ -53,13 +53,23 @@ class AuthViewModel @Inject constructor(private val api: AuthApi, private val st
         viewModelScope.launch {
             try { block() }
             catch (e: CancellationException) { throw e }
-            catch (_: GetCredentialCancellationException) { /* User dismissed account selection. */ }
-            catch (e: HttpException) {
-                _errorMessage.value = try { JSONObject(e.response()?.errorBody()?.string().orEmpty()).optString("message").ifBlank { "Sign-in failed. Please try again." } }
-                    catch (_: Exception) { "Sign-in failed. Please try again." }
+            catch (_: GetCredentialCancellationException) {
+                android.util.Log.i("AuthViewModel", "User dismissed Google account picker")
             }
-            catch (_: IOException) { _errorMessage.value = "Cannot connect. Check your connection or continue as guest." }
-            catch (e: Exception) { _errorMessage.value = e.message ?: "Sign-in failed. Please try again." }
+            catch (e: HttpException) {
+                val errBody = try { e.response()?.errorBody()?.string().orEmpty() } catch (_: Exception) { "" }
+                android.util.Log.e("AuthViewModel", "HTTP error during auth: code=${e.code()} body=$errBody", e)
+                _errorMessage.value = try { JSONObject(errBody).optString("message").ifBlank { "Sign-in failed (${e.code()}). Please try again." } }
+                    catch (_: Exception) { "Sign-in failed (${e.code()}). Please try again." }
+            }
+            catch (e: IOException) {
+                android.util.Log.e("AuthViewModel", "Network error during auth", e)
+                _errorMessage.value = "Cannot connect to server. Check your connection or continue as guest."
+            }
+            catch (e: Exception) {
+                android.util.Log.e("AuthViewModel", "Auth error: ${e.javaClass.simpleName} - ${e.message}", e)
+                _errorMessage.value = e.message ?: "Sign-in failed. Please try again."
+            }
             finally { _busy.value = false }
         }
     }
@@ -86,14 +96,23 @@ class AuthViewModel @Inject constructor(private val api: AuthApi, private val st
     }
     fun googleSignIn(context: Context) = runOperation {
         val clientId = context.getString(R.string.google_web_client_id)
+        android.util.Log.i("AuthViewModel", "Initiating Google Sign-In with serverClientId=$clientId")
         check(clientId.isNotBlank()) { "Google sign-in needs the app's Google client ID configured." }
         val option = GetSignInWithGoogleOption.Builder(clientId).build()
-        val result = CredentialManager.create(context).getCredential(context,
-            GetCredentialRequest.Builder().addCredentialOption(option).build())
+        val result = try {
+            CredentialManager.create(context).getCredential(context,
+                GetCredentialRequest.Builder().addCredentialOption(option).build())
+        } catch (e: Exception) {
+            android.util.Log.e("AuthViewModel", "CredentialManager getCredential failed: ${e.javaClass.simpleName} - ${e.message}", e)
+            throw e
+        }
         val credential = result.credential
-        check(credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) { "Unsupported Google credential." }
+        check(credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) { "Unsupported Google credential type: ${credential.type}" }
         val token = GoogleIdTokenCredential.createFrom(credential.data).idToken
-        accept(api.google(mapOf("idToken" to token)))
+        android.util.Log.i("AuthViewModel", "Google ID token retrieved, sending to backend...")
+        val authResponse = api.google(mapOf("idToken" to token))
+        android.util.Log.i("AuthViewModel", "Backend response: success=${authResponse.success}")
+        accept(authResponse)
     }
     fun loginAnonymously() = runOperation {
         try { accept(api.guest()) }

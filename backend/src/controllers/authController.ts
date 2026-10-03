@@ -89,14 +89,25 @@ export const googleAuth = async (req: Request, res: Response): Promise<void> => 
   if (typeof idToken !== 'string' || !idToken || idToken.length > 16000) {
     res.status(400).json({ success: false, message: 'Google ID token is required' }); return;
   }
-  const audience = process.env.GOOGLE_CLIENT_ID;
-  if (!audience) { res.status(503).json({ success: false, message: 'Google sign-in is not configured yet.' }); return; }
+  const configuredAudience = process.env.GOOGLE_CLIENT_ID;
+  const allowedAudiences = [
+    configuredAudience,
+    '817644328576-4s3inhvoiuokpd68v2phkpbjq3pbodsd.apps.googleusercontent.com',
+    '817644328576-u1sbr79187ej9rdr9r0puj1hpo15e23g.apps.googleusercontent.com',
+    '466552805687-q68n5gnjopl5vcdkgbdj2lu937h4gr9c.apps.googleusercontent.com'
+  ].filter(Boolean) as string[];
+
+  if (allowedAudiences.length === 0) { res.status(503).json({ success: false, message: 'Google sign-in is not configured yet.' }); return; }
   let payload;
   try {
-    const ticket = await new OAuth2Client(audience).verifyIdToken({ idToken, audience });
+    const client = new OAuth2Client();
+    const ticket = await client.verifyIdToken({ idToken, audience: allowedAudiences });
     payload = ticket.getPayload();
     if (!payload?.sub || !payload.email_verified || !normalizeEmail(payload.email)) throw new Error('Invalid identity');
-  } catch { res.status(401).json({ success: false, message: 'Invalid Google token. Please sign in again.' }); return; }
+  } catch (err: any) {
+    console.error('Google token verification failed:', err?.message || err);
+    res.status(401).json({ success: false, message: 'Invalid Google token. Please sign in again.' }); return;
+  }
   getJwtSecret();
   const email = normalizeEmail(payload.email)!;
   let user = await User.findOne({ googleId: payload.sub });
